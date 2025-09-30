@@ -9,7 +9,7 @@ enum FirstBitIndex {
 }
 
 extension UInt8 {
-	func bitRepr() -> String {
+	func bitStr() -> String {
 		var res = "0b"
 		for i in (0...7).reversed() {
 			res += String(self[i] as UInt8)
