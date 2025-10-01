@@ -45,17 +45,14 @@ extension [UInt8] {
 	}
 
 	public static func ^= (a: inout [UInt8], b: [UInt8]) {
-		for i in 0...a.count {
+		for i in 0..<a.count {
 			a[i] ^= b[i]
 		}
 	}
 
-	public static func ^ (a: [UInt8], b: [UInt8]) -> [UInt8]? {
-		if a.count != b.count {
-			return nil
-		}
+	public static func ^ (a: [UInt8], b: [UInt8]) -> [UInt8] {
 		var res = a
-		for i in 0...res.count {
+		for i in 0..<res.count {
 			res[i] ^= b[i]
 		}
 		return res

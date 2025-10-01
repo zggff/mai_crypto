@@ -104,6 +104,12 @@ public class SymmetricEncryptor: Encryptor {
 			return nil
 		}
 
+		if let iv = iv {
+			if iv.count != key.count {
+				return nil
+			}
+		}
+
 		self.key = key
 		self.mode = mode
 		self.padding = padding
@@ -134,10 +140,13 @@ public class SymmetricEncryptor: Encryptor {
 					contentsOf: (1..<to_pad).map({ _ in UInt8.random(in: 0...255) }))
 				blocks[blocks.count - 1].append(UInt8(to_pad))
 			case .ansiX923:
-				let to_pad2 = to_pad == 0 ? 8 : to_pad
+				let to_pad = to_pad == 0 ? 8 : to_pad
+                if to_pad == 8 {
+                    blocks.append([])
+                }
 				blocks[blocks.count - 1].append(
-					contentsOf: (1..<to_pad2).map({ _ in UInt8.random(in: 0...255) }))
-				blocks[blocks.count - 1].append(UInt8(to_pad2))
+					contentsOf: (1..<to_pad).map({ _ in UInt8.random(in: 0...255) }))
+				blocks[blocks.count - 1].append(UInt8(to_pad))
 		}
 		return blocks
 	}
@@ -179,32 +188,52 @@ public class SymmetricEncryptor: Encryptor {
 
 	}
 
+	// TODO: Do more with encrypt and decrypt
+	static func encryptBlock(block: inout Block, key: Block) {
+		block ^= key
+	}
+	static func decryptBlock(block: inout Block, key: Block) {
+		block ^= key
+	}
+
 	public func encrypt(data: [Byte]) async throws -> [Byte] {
 		if data.isEmpty {
 			throw EncryptionError.empty
 		}
 		let padded = padData(data: data)
 		let key = self.key
-		let res =
-			switch mode {
-				case .ecb:
-					await withTaskGroup { group in
-						for block in padded {
-							group.addTask(operation: {
-								var new_block = block
-								for i in 0..<key.count {
-									new_block[i] ^= key[i]
-								}
-								return new_block
-							})
-						}
-						return await group.reduce(into: [Byte]()) { partial, block in
-							partial.append(contentsOf: block)
-						}
-					}
-				default:
-					throw EncryptionError.runtimeError("encryption mode \(mode) not implemented")
-			}
+		let res: [Byte]
+		switch mode {
+			case .ecb:
+				var tasks: [Task<Block, Error>] = []
+				var arr: [Byte] = []
+				for block in padded {
+					tasks.append(
+						Task {
+							var new_block = block
+							SymmetricEncryptor.encryptBlock(
+								block: &new_block, key: key)
+							return new_block
+						})
+				}
+				for task in tasks {
+					arr.append(contentsOf: try await task.value)
+				}
+				res = arr
+			case .cbc:
+				var blocks = [self.iv ?? Array(repeating: 0, count: key.count)]
+				for block in padded {
+					blocks.append(block ^ blocks.last!)
+					SymmetricEncryptor.encryptBlock(block: &blocks[blocks.count - 1], key: key)
+				}
+				res = blocks[1...].reduce(
+					[],
+					{ partial, block in
+						return partial + block
+					})
+			default:
+				throw EncryptionError.runtimeError("encryption mode \(mode) not implemented")
+		}
 		return res
 	}
 
@@ -218,29 +247,43 @@ public class SymmetricEncryptor: Encryptor {
 
 		let padded = data.splitInSubArrays(into: key.count)
 		let key = self.key
-		var res =
-			switch mode {
-				case .ecb:
-					await withTaskGroup { group in
-						for block in padded {
-							group.addTask(operation: {
-								var new_block = block
-								for i in 0..<key.count {
-									new_block[i] ^= key[i]
-								}
-								return new_block
-							})
-						}
-						return await group.reduce(into: [Byte]()) { partial, block in
-							partial.append(contentsOf: block)
-						}
-					}
+		var res: [Byte]
+		switch mode {
+			case .ecb:
+				var tasks: [Task<Block, Error>] = []
+				var arr: [Byte] = []
+				for block in padded {
+					tasks.append(
+						Task {
+							var new_block = block
+							SymmetricEncryptor.decryptBlock(
+								block: &new_block, key: key)
+							return new_block
+						})
+				}
+				for task in tasks {
+					arr.append(contentsOf: try await task.value)
+				}
+				res = arr
+			case .cbc:
+				var blocks: [Block] = []
+				var prev_block = self.iv ?? Array(repeating: 0, count: key.count)
+				for block in padded {
+					blocks.append(block)
+					SymmetricEncryptor.decryptBlock(block: &blocks[blocks.count - 1], key: key)
+					blocks[blocks.count - 1] ^= prev_block
+					prev_block = block
+				}
+				res = blocks.reduce(
+					[],
+					{ partial, block in
+						return partial + block
+					})
 
-				default:
-					throw EncryptionError.runtimeError("decryption mode \(mode) not implemented")
-			}
+			default:
+				throw EncryptionError.runtimeError("decryption mode \(mode) not implemented")
+		}
 		try unpadData(data: &res)
-
 		return res
 	}
 }
