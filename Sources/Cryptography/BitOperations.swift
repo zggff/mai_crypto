@@ -1,12 +1,14 @@
-public extension UInt8 {
-	func bitStr() -> String {
+public typealias Byte = UInt8
+
+extension UInt8 {
+	public func bitStr() -> String {
 		var res = "0b"
 		for i in (0...7).reversed() {
 			res += String(self[i] as UInt8)
 		}
 		return res
 	}
-	subscript(i: Int) -> Bool {
+	public subscript(i: Int) -> Bool {
 		get {
 			return self & (1 << i) != 0
 		}
@@ -17,7 +19,7 @@ public extension UInt8 {
 			}
 		}
 	}
-	subscript(at: Int) -> UInt8 {
+	public subscript(at: Int) -> UInt8 {
 		get {
 			return (self & (1 << at)) >> at
 		}
@@ -30,18 +32,33 @@ public extension UInt8 {
 	}
 }
 
-public extension [UInt8] {
-
-	func bit(_ at: Int) -> Bool {
+extension [UInt8] {
+	public func bit(_ at: Int) -> Bool {
 		return self[at / 8] & (1 << (at % 8)) != 0
 	}
 
-	mutating func setBit(_ at: Int, _ val: Bool) {
+	public mutating func setBit(_ at: Int, _ val: Bool) {
 		switch val {
 		case false: self[at / 8] &= ~(1 << (at % 8))
 		case true: self[at / 8] |= (1 << (at % 8))
 		}
 	}
 
+	public static func ^= (a: inout [UInt8], b: [UInt8]) {
+		for i in 0...a.count {
+			a[i] ^= b[i]
+		}
+	}
+
+	public static func ^ (a: [UInt8], b: [UInt8]) -> [UInt8]? {
+		if a.count != b.count {
+			return nil
+		}
+		var res = a
+		for i in 0...res.count {
+			res[i] ^= b[i]
+		}
+		return res
+	}
 }
 
