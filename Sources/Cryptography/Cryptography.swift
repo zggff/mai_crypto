@@ -51,7 +51,7 @@ public protocol Encryptor {
 	func decrypt(data: [Byte]) async throws -> [Byte]
 }
 
-public enum EncryptionMode {
+public enum EncryptionMode: CaseIterable & Sendable {
 	case ecb
 	case cbc
 	case pcbc
@@ -61,14 +61,14 @@ public enum EncryptionMode {
 	case randomDelta
 }
 
-public enum PaddingMode {
+public enum PaddingMode: CaseIterable & Sendable {
 	case zeros
 	case ansiX923
 	case pkcs7
 	case iso10126
 }
 
-public enum EncryptionModeArg {}
+public enum EncryptionModeArg: Sendable {}
 
 public typealias Block = [Byte]
 
@@ -134,10 +134,10 @@ public class SymmetricEncryptor: Encryptor {
 					contentsOf: (1..<to_pad).map({ _ in UInt8.random(in: 0...255) }))
 				blocks[blocks.count - 1].append(UInt8(to_pad))
 			case .ansiX923:
-				let to_pad = to_pad == 0 ? 8 : to_pad
+				let to_pad2 = to_pad == 0 ? 8 : to_pad
 				blocks[blocks.count - 1].append(
-					contentsOf: (1..<to_pad).map({ _ in UInt8.random(in: 0...255) }))
-				blocks[blocks.count - 1].append(UInt8(to_pad))
+					contentsOf: (1..<to_pad2).map({ _ in UInt8.random(in: 0...255) }))
+				blocks[blocks.count - 1].append(UInt8(to_pad2))
 		}
 		return blocks
 	}
@@ -145,14 +145,36 @@ public class SymmetricEncryptor: Encryptor {
 	func unpadData(data: inout [Byte]) throws {
 		switch self.padding {
 			case .zeros:
-				for i in (1...key.count).reversed() {
+				for i in (1...key.count) {
 					if data[data.count - i] != 0 {
 						data.removeLast(i - 1)
 						break
 					}
 				}
-			default:
-				throw EncryptionError.runtimeError("unpadding for \(self.padding) not implemented")
+			case .pkcs7:
+				let n = data[data.count - 1]
+				guard n < key.count && n < data.count else {
+					return
+				}
+
+				let slice = data[data.count - Int(n)..<data.count]
+				if slice.map({ $0 == n }).reduce(true, { x, y in x && y }) {
+					data.removeLast(Int(n))
+				}
+			case .iso10126:
+				let n = data[data.count - 1]
+				guard n < key.count && n < data.count else {
+					return
+				}
+				data.removeLast(Int(n))
+			case .ansiX923:
+				let n = data[data.count - 1]
+				guard n <= key.count && n >= 1 && n < data.count else {
+					throw EncryptionError.runtimeError(
+						"\(n) - invalid ending for ansiX9.23 padding, value must be between 1 and 8"
+					)
+				}
+				data.removeLast(Int(n))
 		}
 
 	}
