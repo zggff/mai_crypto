@@ -67,7 +67,7 @@ struct Test12 {
 
 	@Test(
 		"1.2 encryption", arguments: PaddingMode.allCases,
-		[EncryptionMode.ecb, EncryptionMode.cbc, EncryptionMode.pcbc])
+		[EncryptionMode.ecb, EncryptionMode.cbc, EncryptionMode.pcbc, EncryptionMode.cfb])
 	func testEncryption(padding: PaddingMode, mode: EncryptionMode) async throws {
 		let key = "12345678"
 		let iv = "abcdefgh"

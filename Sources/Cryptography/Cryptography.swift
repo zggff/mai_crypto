@@ -257,6 +257,19 @@ public class SymmetricEncryptor: Encryptor {
 					{ partial, block in
 						return partial + block
 					})
+			case .cfb:
+				let iv = self.iv ?? Array(repeating: 0, count: key.count)
+				var blocks: [Block] = [iv]
+				for block in padded {
+					SymmetricEncryptor.encryptBlock(block: &blocks.lastMut, key: key)
+					blocks.lastMut ^= block
+					blocks.append(blocks.lastMut)
+				}
+				res = blocks[0..<blocks.count - 1].reduce(
+					[],
+					{ partial, block in
+						return partial + block
+					})
 			default:
 				throw EncryptionError.runtimeError("encryption mode \(mode) not implemented")
 		}
@@ -317,6 +330,19 @@ public class SymmetricEncryptor: Encryptor {
 					to_xor ^= blocks.lastMut
 				}
 				res = blocks.reduce(
+					[],
+					{ partial, block in
+						return partial + block
+					})
+			case .cfb:
+				let iv = self.iv ?? Array(repeating: 0, count: key.count)
+				var blocks: [Block] = [iv]
+				for block in padded {
+					SymmetricEncryptor.decryptBlock(block: &blocks.lastMut, key: key)
+					blocks.lastMut ^= block
+					blocks.append(block)
+				}
+				res = blocks[0..<blocks.count - 1].reduce(
 					[],
 					{ partial, block in
 						return partial + block
