@@ -59,6 +59,17 @@ extension [UInt8] {
 			a[i] &-= b[i]
 		}
 	}
+	public static func += (a: inout [UInt8], b: Int) {
+		var remaining = b
+		for i in (0..<a.count).reversed() {
+			let res = remaining + Int(a[i])
+			a[i] = UInt8(res % 256)
+            remaining = res / 256
+			if remaining == 0 {
+				break
+			}
+		}
+	}
 
 	public static func ^ (a: [UInt8], b: [UInt8]) -> [UInt8] {
 		var res = a

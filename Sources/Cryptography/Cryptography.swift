@@ -207,6 +207,10 @@ public class SymmetricEncryptor: Encryptor {
 		block -= key
 	}
 
+	static func updateIv(iv: Block, i: Int) -> Block {
+		return iv
+	}
+
 	public func encrypt(data: [Byte]) async throws -> [Byte] {
 		if data.isEmpty {
 			throw EncryptionError.empty
@@ -282,6 +286,25 @@ public class SymmetricEncryptor: Encryptor {
 					{ partial, block in
 						return partial + block
 					})
+			case .ctr:
+				var tasks: [Task<Block, Error>] = []
+				var arr: [Byte] = []
+				let iv = self.iv ?? Array(repeating: 0, count: key.count)
+				for (i, block) in padded.enumerated() {
+					tasks.append(
+						Task {
+							var new_block = SymmetricEncryptor.updateIv(iv: iv, i: i)
+							SymmetricEncryptor.encryptBlock(
+								block: &new_block, key: key)
+							new_block ^= block
+							return new_block
+						})
+				}
+				for task in tasks {
+					arr.append(contentsOf: try await task.value)
+				}
+				res = arr
+
 			default:
 				throw EncryptionError.runtimeError("encryption mode \(mode) not implemented")
 		}
@@ -371,6 +394,24 @@ public class SymmetricEncryptor: Encryptor {
 					{ partial, block in
 						return partial + block
 					})
+			case .ctr:
+				var tasks: [Task<Block, Error>] = []
+				var arr: [Byte] = []
+				let iv = self.iv ?? Array(repeating: 0, count: key.count)
+				for (i, block) in padded.enumerated() {
+					tasks.append(
+						Task {
+							var new_block = SymmetricEncryptor.updateIv(iv: iv, i: i)
+							SymmetricEncryptor.encryptBlock(
+								block: &new_block, key: key)
+							new_block ^= block
+							return new_block
+						})
+				}
+				for task in tasks {
+					arr.append(contentsOf: try await task.value)
+				}
+				res = arr
 
 			default:
 				throw EncryptionError.runtimeError("decryption mode \(mode) not implemented")

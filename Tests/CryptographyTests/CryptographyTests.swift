@@ -37,6 +37,24 @@ import Testing
 	#expect(res! == [1, 2, 3, 4, 5, 6])
 }
 
+@Test("Adding Int to [UInt8]")
+func test_into_to_uint8_array_adding() {
+	for i in stride(from: 0, to: 2048, by: 10) {
+		for j in stride(from: 0, to: 2048, by: 10) {
+			var arr: [UInt8] = Array(repeating: 0, count: 4)
+			arr += i
+			arr += j
+			let b = arr.reduce(0) { soFar, byte in
+				return soFar << 8 | UInt32(byte)
+			}
+			#expect(i + j == b, "\(i) + \(j) = \(i + j), \(arr), \(b)")
+			guard i + j == b else {
+				return
+			}
+		}
+	}
+}
+
 @Suite("Test 1.2")
 struct Test12 {
 	@Test(
@@ -67,7 +85,10 @@ struct Test12 {
 
 	@Test(
 		"1.2 encryption", arguments: PaddingMode.allCases,
-		[EncryptionMode.ecb, EncryptionMode.cbc, EncryptionMode.pcbc, EncryptionMode.cfb, EncryptionMode.ofb])
+		[
+			EncryptionMode.ecb, EncryptionMode.cbc, EncryptionMode.pcbc, EncryptionMode.cfb,
+			EncryptionMode.ofb, EncryptionMode.ctr,
+		])
 	func testEncryption(padding: PaddingMode, mode: EncryptionMode) async throws {
 		let key = "12345678"
 		let iv = "abcdefgh"
