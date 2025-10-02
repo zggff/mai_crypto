@@ -201,10 +201,10 @@ public class SymmetricEncryptor: Encryptor {
 
 	// TODO: Do more with encrypt and decrypt
 	static func encryptBlock(block: inout Block, key: Block) {
-		block ^= key
+		block += key
 	}
 	static func decryptBlock(block: inout Block, key: Block) {
-		block ^= key
+		block -= key
 	}
 
 	public func encrypt(data: [Byte]) async throws -> [Byte] {
@@ -266,6 +266,18 @@ public class SymmetricEncryptor: Encryptor {
 					blocks.append(blocks.lastMut)
 				}
 				res = blocks[0..<blocks.count - 1].reduce(
+					[],
+					{ partial, block in
+						return partial + block
+					})
+			case .ofb:
+				var prev = self.iv ?? Array(repeating: 0, count: key.count)
+				var blocks: [Block] = []
+				for block in padded {
+					SymmetricEncryptor.encryptBlock(block: &prev, key: key)
+					blocks.append(block ^ prev)
+				}
+				res = blocks.reduce(
 					[],
 					{ partial, block in
 						return partial + block
@@ -338,11 +350,23 @@ public class SymmetricEncryptor: Encryptor {
 				let iv = self.iv ?? Array(repeating: 0, count: key.count)
 				var blocks: [Block] = [iv]
 				for block in padded {
-					SymmetricEncryptor.decryptBlock(block: &blocks.lastMut, key: key)
+					SymmetricEncryptor.encryptBlock(block: &blocks.lastMut, key: key)
 					blocks.lastMut ^= block
 					blocks.append(block)
 				}
 				res = blocks[0..<blocks.count - 1].reduce(
+					[],
+					{ partial, block in
+						return partial + block
+					})
+			case .ofb:
+				var prev = self.iv ?? Array(repeating: 0, count: key.count)
+				var blocks: [Block] = []
+				for block in padded {
+					SymmetricEncryptor.encryptBlock(block: &prev, key: key)
+					blocks.append(block ^ prev)
+				}
+				res = blocks.reduce(
 					[],
 					{ partial, block in
 						return partial + block

@@ -67,7 +67,7 @@ struct Test12 {
 
 	@Test(
 		"1.2 encryption", arguments: PaddingMode.allCases,
-		[EncryptionMode.ecb, EncryptionMode.cbc, EncryptionMode.pcbc, EncryptionMode.cfb])
+		[EncryptionMode.ecb, EncryptionMode.cbc, EncryptionMode.pcbc, EncryptionMode.cfb, EncryptionMode.ofb])
 	func testEncryption(padding: PaddingMode, mode: EncryptionMode) async throws {
 		let key = "12345678"
 		let iv = "abcdefgh"
@@ -80,7 +80,7 @@ struct Test12 {
 			let encr = try await cipher.encrypt(data: data)
 			let res = try await cipher.decrypt(data: encr)
 			let newString = String(decoding: res, as: UTF8.self)
-			#expect(res == data, "\(str)")
+			#expect(res == data, "\(str) with \(mode) + \(padding)")
 			if str != newString {
 				return
 			}
