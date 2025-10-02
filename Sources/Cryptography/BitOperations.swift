@@ -14,8 +14,8 @@ extension UInt8 {
 		}
 		set(val) {
 			switch val {
-			case true: self |= (1 << i)
-			case false: self &= ~(1 << i)
+				case true: self |= (1 << i)
+				case false: self &= ~(1 << i)
 			}
 		}
 	}
@@ -25,8 +25,8 @@ extension UInt8 {
 		}
 		set(val) {
 			switch val {
-			case 0: self &= ~(1 << at)
-			default: self |= (1 << at)
+				case 0: self &= ~(1 << at)
+				default: self |= (1 << at)
 			}
 		}
 	}
@@ -39,14 +39,24 @@ extension [UInt8] {
 
 	public mutating func setBit(_ at: Int, _ val: Bool) {
 		switch val {
-		case false: self[at / 8] &= ~(1 << (at % 8))
-		case true: self[at / 8] |= (1 << (at % 8))
+			case false: self[at / 8] &= ~(1 << (at % 8))
+			case true: self[at / 8] |= (1 << (at % 8))
 		}
 	}
 
 	public static func ^= (a: inout [UInt8], b: [UInt8]) {
 		for i in 0..<a.count {
 			a[i] ^= b[i]
+		}
+	}
+	public static func += (a: inout [UInt8], b: [UInt8]) {
+		for i in 0..<a.count {
+			a[i] &+= b[i]
+		}
+	}
+	public static func -= (a: inout [UInt8], b: [UInt8]) {
+		for i in 0..<a.count {
+			a[i] &-= b[i]
 		}
 	}
 
@@ -58,4 +68,3 @@ extension [UInt8] {
 		return res
 	}
 }
-
