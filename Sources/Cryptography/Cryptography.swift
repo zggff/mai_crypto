@@ -70,6 +70,17 @@ public enum PaddingMode: CaseIterable & Sendable {
 
 public enum EncryptionModeArg: Sendable {}
 
+extension Array {
+	public var lastMut: Element {
+		get {
+			return self[count - 1]
+		}
+		set {
+			self[count - 1] = newValue
+		}
+	}
+}
+
 public typealias Block = [Byte]
 
 extension Array {
@@ -141,9 +152,9 @@ public class SymmetricEncryptor: Encryptor {
 				blocks[blocks.count - 1].append(UInt8(to_pad))
 			case .ansiX923:
 				let to_pad = to_pad == 0 ? 8 : to_pad
-                if to_pad == 8 {
-                    blocks.append([])
-                }
+				if to_pad == 8 {
+					blocks.append([])
+				}
 				blocks[blocks.count - 1].append(
 					contentsOf: (1..<to_pad).map({ _ in UInt8.random(in: 0...255) }))
 				blocks[blocks.count - 1].append(UInt8(to_pad))
@@ -231,6 +242,21 @@ public class SymmetricEncryptor: Encryptor {
 					{ partial, block in
 						return partial + block
 					})
+			case .pcbc:
+				var to_xor = self.iv ?? Array(repeating: 0, count: key.count)
+				var blocks: [Block] = []
+				for block in padded {
+					blocks.append(block ^ to_xor)
+					SymmetricEncryptor.encryptBlock(block: &blocks[blocks.count - 1], key: key)
+					to_xor ^= to_xor
+					to_xor ^= block
+					to_xor ^= blocks[blocks.count - 1]
+				}
+				res = blocks.reduce(
+					[],
+					{ partial, block in
+						return partial + block
+					})
 			default:
 				throw EncryptionError.runtimeError("encryption mode \(mode) not implemented")
 		}
@@ -273,6 +299,22 @@ public class SymmetricEncryptor: Encryptor {
 					SymmetricEncryptor.decryptBlock(block: &blocks[blocks.count - 1], key: key)
 					blocks[blocks.count - 1] ^= prev_block
 					prev_block = block
+				}
+				res = blocks.reduce(
+					[],
+					{ partial, block in
+						return partial + block
+					})
+			case .pcbc:
+				var to_xor = self.iv ?? Array(repeating: 0, count: key.count)
+				var blocks: [Block] = []
+				for block in padded {
+					blocks.append(block)
+					SymmetricEncryptor.decryptBlock(block: &blocks.lastMut, key: key)
+					blocks.lastMut ^= to_xor
+					to_xor ^= to_xor
+					to_xor ^= block
+					to_xor ^= blocks.lastMut
 				}
 				res = blocks.reduce(
 					[],
