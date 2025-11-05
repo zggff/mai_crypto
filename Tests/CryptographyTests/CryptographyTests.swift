@@ -28,7 +28,7 @@ func test_into_to_uint8_array_adding() {
 	}
 }
 
-@Suite("Test 1.2")
+@Suite("Test interfaces")
 struct Test12 {
 	@Test(
 		"1.2 padding", arguments: PaddingMode.allCases,
@@ -39,8 +39,8 @@ struct Test12 {
 			return
 		}
 
-		let cipher = SymmetricEncryptor<AddEncryptor>(
-			key: Array(key.utf8), mode: EncryptionMode.ecb, padding: padding, iv: nil, args: [])!
+		let cipher = try SymmetricEncryptor<AddEncryptor>(
+			key: Array(key.utf8), mode: EncryptionMode.ecb, padding: padding, iv: nil, args: [])
 		for n in (1...32) {
 			let str: String = (1...n).reduce(
 				"", { partialResult, val in partialResult + " " + String(val) })
@@ -58,7 +58,7 @@ struct Test12 {
 
 	final class AddEncryptor: Encryptor {
 		let key: Block
-		init(key: Block) {
+		init(key: Block) throws {
 			self.key = key
 		}
 		func encrypt(data: Block) throws -> Block {
@@ -82,8 +82,8 @@ struct Test12 {
 		let key = "12345678"
 		let iv = "abcdefgh"
 		for n in (1...32) {
-			let cipher = SymmetricEncryptor<AddEncryptor>(
-				key: Array(key.utf8), mode: mode, padding: padding, iv: Array(iv.utf8), args: [])!
+			let cipher = try SymmetricEncryptor<AddEncryptor>(
+				key: Array(key.utf8), mode: mode, padding: padding, iv: Array(iv.utf8), args: [])
 			let str: String = (1...n).reduce(
 				"", { partialResult, val in partialResult + " " + String(val) })
 			let data = Array(str.utf8)
@@ -99,16 +99,16 @@ struct Test12 {
 	}
 }
 
-@Suite("Test 1.1, 1.3, 1.4")
-struct Test1134 {
+@Suite("Test des and feistel")
+struct TestDes {
 	// https://emn178.github.io/online-tools/des/encrypt/
 	@Test("DES encryption as example")
 	func desTest() async throws {
 		let key = Array("12345678".utf8)
 		let text = Array("Lorem ipsum dolor".utf8)
-		let encryptor = SymmetricEncryptor<DesEncryptor>(
+		let encryptor = try SymmetricEncryptor<DesEncryptor>(
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
-			args: [])!
+			args: [])
 		let encrypted = try await encryptor.encrypt(data: text)
 		#expect(
 			encrypted.toHexString() == "b959cd9089fd2e4e59a8ce28b00a7320a8829ecfa5805c33",
@@ -117,9 +117,9 @@ struct Test1134 {
 	@Test("DES encryption as example")
 	func desTestComprehensive() async throws {
 		let key = Array("12345678".utf8)
-		let cipher = SymmetricEncryptor<DesEncryptor>(
+		let cipher = try SymmetricEncryptor<DesEncryptor>(
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
-			args: [])!
+			args: [])
 		for n in (1...32) {
 			let str: String = (1...n).reduce(
 				"", { partialResult, val in partialResult + " " + String(val) })
@@ -131,6 +131,24 @@ struct Test1134 {
 			if str != newString {
 				return
 			}
+		}
+	}
+}
+
+@Suite("Test deal")
+struct TestDeal {
+	@Test("Deal encryption", arguments: [16])
+	func desTestComprehensive(size: Int) async throws {
+		let key = Array.random(size: size)
+		let cipher = try SymmetricEncryptor<DealEncryptor>(
+			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
+			args: [])
+		for n in (1...10) {
+			var data = Array.random(size: n * 60)
+            try cipher.unpadData(data: &data)
+			let encr = try await cipher.encrypt(data: data)
+			let res = try await cipher.decrypt(data: encr)
+			#expect(res == data, "\(data) with \(key)")
 		}
 	}
 }

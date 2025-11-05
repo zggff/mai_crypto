@@ -4,10 +4,10 @@ public final class Feistel<K: KeyExpander, T: EncryptTransposer>: Encryptor {
 	let encrypt_keys: [Block]
 	let decrypt_keys: [Block]
 
-	public init(key: Block) {
+	public init(key: Block) throws {
 		self.expander = K()
 		self.transposer = T()
-		self.encrypt_keys = expander.expandKey(key: key)!
+		self.encrypt_keys = try expander.expandKey(key: key)
 		self.decrypt_keys = encrypt_keys.reversed()
 	}
 
@@ -23,17 +23,17 @@ public final class Feistel<K: KeyExpander, T: EncryptTransposer>: Encryptor {
 		guard data.count % 2 == 0 else {
 			throw EncryptionError.blockSizeInvalid
 		}
-		let data = transposer.preProcess(data: data)!
+		let data = try transposer.preProcess(data: data)
 
 		let middle = data.count / 2
 		var left = Array(data[..<middle])
 		var right = Array(data[middle...])
 		for key in keys {
-			var x = transposer.transpose(data: right, key: key)!
+			var x = try transposer.transpose(data: right, key: key)
 			x ^= left
 			left = right
 			right = x
 		}
-		return transposer.postProcess(data: right + left)!
+		return try transposer.postProcess(data: right + left)
 	}
 }

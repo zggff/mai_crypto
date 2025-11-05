@@ -11,24 +11,24 @@ public enum FirstBitIndex {
 }
 
 public protocol KeyExpander: Sendable {
-    init()
-	func expandKey(key: Block) -> [Block]?
+	init()
+	func expandKey(key: Block) throws -> [Block]
 }
 
 public protocol EncryptTransposer: Sendable {
-    init()
-	func transpose(data: Block, key: Block) -> Block?
-	func preProcess(data: Block) -> Block?
-	func postProcess(data: Block) -> Block?
+	init()
+	func transpose(data: Block, key: Block) throws -> Block
+	func preProcess(data: Block) throws -> Block
+	func postProcess(data: Block) throws -> Block
 }
 
 extension EncryptTransposer {
-	public func preProcess(data: Block) -> Block? { return data }
-	public func postProcess(data: Block) -> Block? { return data }
+	public func preProcess(data: Block) throws -> Block { return data }
+	public func postProcess(data: Block) throws -> Block { return data }
 }
 
 public protocol Encryptor: Sendable {
-    init(key: Block)
+	init(key: Block) throws
 	func encrypt(data: Block) throws -> Block
 	func decrypt(data: Block) throws -> Block
 }
@@ -77,8 +77,8 @@ public enum EncryptionError: Error {
 	case empty
 	case notFitting
 	case runtimeError(String)
-    case keyNotSet
-    case blockSizeInvalid
+	case keyNotSet
+	case blockSizeInvalid
 }
 
 public class SymmetricEncryptor<E: Encryptor> {
@@ -89,20 +89,20 @@ public class SymmetricEncryptor<E: Encryptor> {
 	let args: [EncryptionModeArg]
 	let encryptor: E
 
-	public init?(
+	public init(
 		key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
 		args: [EncryptionModeArg]
-	) {
+	) throws {
 		if key.count > 256 {
-			return nil
+			throw EncryptionError.runtimeError("key too large")
 		}
 		if padding == PaddingMode.ansiX923 && key.count > 8 {
-			return nil
+			throw EncryptionError.runtimeError("key for ansiX923 must be less than 8 bytes")
 		}
 
 		if let iv = iv {
 			if iv.count != key.count {
-				return nil
+                throw EncryptionError.runtimeError("iv must have the same lenght as key")
 			}
 		}
 
@@ -111,7 +111,7 @@ public class SymmetricEncryptor<E: Encryptor> {
 		self.padding = padding
 		self.iv = iv
 		self.args = args
-		self.encryptor = E(key: key)
+		self.encryptor = try E(key: key)
 	}
 
 	func padData(data: [Byte]) -> [Block] {
@@ -314,7 +314,7 @@ public class SymmetricEncryptor<E: Encryptor> {
 		let padded = data.splitInSubArrays(into: key.count)
 		let key = self.key
 		var res: [Byte]
-        let encryptor = self.encryptor
+		let encryptor = self.encryptor
 		switch mode {
 			case .ecb:
 				var tasks: [Task<Block, Error>] = []

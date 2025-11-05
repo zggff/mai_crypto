@@ -1,5 +1,5 @@
-public func permute(data: [Byte], rule: [Int], order: BitOrder, firstBit: FirstBitIndex)
-	-> [Byte]?
+public func permute(data: [Byte], rule: [Int], order: BitOrder, firstBit: FirstBitIndex) throws
+	-> [Byte]
 {
 	let shift =
 		switch firstBit {
@@ -9,8 +9,7 @@ public func permute(data: [Byte], rule: [Int], order: BitOrder, firstBit: FirstB
 	var res = Array.init(repeating: UInt8(0), count: (rule.count - 1) / 8 + 1)
 	for (i, pos) in rule.enumerated() {
 		guard pos - shift >= 0 && pos - shift <= data.count * 8 else {
-			print("exiting on \(pos) with rule: \(rule)")
-			return nil
+			throw EncryptionError.runtimeError("exiting on \(pos) with rule: \(rule)")
 		}
 		let pos =
 			switch order {

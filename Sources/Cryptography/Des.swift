@@ -91,22 +91,22 @@ public final class DesTransposer: EncryptTransposer {
 		],
 	]
 
-	public func preProcess(data: Block) -> Block? {
-		return permute(
+	public func preProcess(data: Block) throws -> Block {
+		return try permute(
 			data: data, rule: Self.Ip, order: BitOrder.forward, firstBit: FirstBitIndex.one)
 	}
 
-	public func postProcess(data: Block) -> Block? {
-		return permute(
+	public func postProcess(data: Block) throws -> Block {
+		return try permute(
 			data: data, rule: Self.Fp, order: BitOrder.forward, firstBit: FirstBitIndex.one)
 	}
 
-	public func transpose(data: Block, key: Block) -> Block? {
+	public func transpose(data: Block, key: Block) throws -> Block {
 		guard data.count == 4 else {
-			return nil
+			throw EncryptionError.runtimeError("block must be 32 bits for des")
 		}
-		var data = permute(
-			data: data, rule: Self.EBox, order: BitOrder.forward, firstBit: FirstBitIndex.one)!
+		var data = try permute(
+			data: data, rule: Self.EBox, order: BitOrder.forward, firstBit: FirstBitIndex.one)
 		data ^= key
 		var udata = data.toUInt()
 		var s_box_result = 0
@@ -119,7 +119,7 @@ public final class DesTransposer: EncryptTransposer {
 			s_box_result |= r << (4 * (7 - i))
 		}
 		let s = s_box_result.toArray(size: 4)
-		return permute(
+		return try permute(
 			data: s, rule: Self.PBox, order: BitOrder.forward, firstBit: FirstBitIndex.one)
 	}
 }
@@ -173,13 +173,13 @@ public final class DesExpander: KeyExpander {
 		let last = (a & (0b11 << 26)) >> 26
 		return (a << 2) & ~(0b11 << 28) | last
 	}
-	public func expandKey(key: Block) -> [Block]? {
+	public func expandKey(key: Block) throws -> [Block] {
 		guard key.count == 8 else {
-			return nil
+            throw EncryptionError.runtimeError("key must be 8 bytes long for des")
 		}
-		let key = permute(
+		let key = try permute(
 			data: key, rule: DesExpander.PC1(), order: BitOrder.forward,
-			firstBit: FirstBitIndex.one)!
+			firstBit: FirstBitIndex.one)
 		let ukey = key.toUInt()
 		let key_shift = Self.KeyShift()
 		var left = (ukey >> 28) & 0xFFFFFFF
@@ -191,9 +191,9 @@ public final class DesExpander: KeyExpander {
 
 			let key_done = (left << 28 | right).toArray(size: 7)
 			keys.append(
-				permute(
+				try permute(
 					data: key_done, rule: Self.PC2(), order: BitOrder.forward,
-					firstBit: FirstBitIndex.one)!)
+					firstBit: FirstBitIndex.one))
 		}
 		return keys
 	}
