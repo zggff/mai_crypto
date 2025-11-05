@@ -10,33 +10,6 @@ import Testing
 	#expect(a == 130)
 }
 
-@Test("Test 1.1") func testTransposition() async throws {
-	let values: [UInt8] = [1, 2, 3, 4, 5, 6]
-	var cipher = [7, 6, 5, 4, 3, 2, 1, 0]
-	var res = Cryptography.transpose(
-		data: values, rule: cipher, order: BitOrder.forward,
-		firstBit: FirstBitIndex.zero)
-
-	#expect(res != nil)
-	#expect(res! == [128, 64, 192, 32, 160, 96])
-
-	res = Cryptography.transpose(
-		data: values, rule: cipher, order: BitOrder.backward,
-		firstBit: FirstBitIndex.zero)
-
-	#expect(res != nil)
-	#expect(res! == [1, 2, 3, 4, 5, 6])
-
-	cipher = [8, 7, 6, 5, 4, 3, 2, 1]
-
-	res = Cryptography.transpose(
-		data: values, rule: cipher, order: BitOrder.backward,
-		firstBit: FirstBitIndex.one)
-
-	#expect(res != nil)
-	#expect(res! == [1, 2, 3, 4, 5, 6])
-}
-
 @Test("Adding Int to [UInt8]")
 func test_into_to_uint8_array_adding() {
 	for i in stride(from: 0, to: 2048, by: 10) {
@@ -85,14 +58,14 @@ struct Test12 {
 	}
 
 	final class AddEncryptor: EncryptTransposer {
-		func transpose(data: Block, key: Block) -> Block! {
+		func transpose(data: Block, key: Block) -> Block? {
 			var new_data = data
 			new_data += key
 			return new_data
 		}
 	}
 	final class AddDecryptor: EncryptTransposer {
-		func transpose(data: Block, key: Block) -> Block! {
+		func transpose(data: Block, key: Block) -> Block? {
 			var new_data = data
 			new_data -= key
 			return new_data
@@ -122,5 +95,47 @@ struct Test12 {
 			}
 		}
 
+	}
+}
+
+@Suite("Test 1.1, 1.3, 1.4")
+struct Test1134 {
+	// https://emn178.github.io/online-tools/des/encrypt/
+	@Test("DES encryption as example")
+	func desTest() async throws {
+		let key = Array("12345678".utf8)
+		let text = Array("Lorem ipsum dolor".utf8)
+		let encryptor = SymmetricEncryptor(
+			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
+			args: [],
+			encryptor: Feistel(expander: DESKeys(), transposer: DESEncryptor()),
+			decryptor: Feistel(expander: DESKeysDecode(), transposer: DESEncryptor()),
+		)!
+		let encrypted = try await encryptor.encrypt(data: text)
+		#expect(
+			encrypted.toHexString() == "b959cd9089fd2e4e59a8ce28b00a7320a8829ecfa5805c33",
+			"must be the same as in example")
+	}
+    @Test("DES encryption as example")
+	func desTestComprehensive() async throws {
+		let key = Array("12345678".utf8)
+		let cipher = SymmetricEncryptor(
+			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
+			args: [],
+			encryptor: Feistel(expander: DESKeys(), transposer: DESEncryptor()),
+			decryptor: Feistel(expander: DESKeysDecode(), transposer: DESEncryptor()),
+		)!
+        for n in (1...32) {
+			let str: String = (1...n).reduce(
+				"", { partialResult, val in partialResult + " " + String(val) })
+			let data = Array(str.utf8)
+			let encr = try await cipher.encrypt(data: data)
+			let res = try await cipher.decrypt(data: encr)
+			let newString = String(decoding: res, as: UTF8.self)
+			#expect(res == data, "\(str) with feistel")
+			if str != newString {
+				return
+			}
+		}
 	}
 }

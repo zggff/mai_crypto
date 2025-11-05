@@ -1,10 +1,10 @@
 public typealias Byte = UInt8
 
-extension UInt8 {
+extension BinaryInteger {
 	public func bitStr() -> String {
 		var res = "0b"
-		for i in (0...7).reversed() {
-			res += String(self[i] as UInt8)
+		for i in (0...self.bitWidth).reversed() {
+			res += String(self[i] as Self)
 		}
 		return res
 	}
@@ -19,7 +19,7 @@ extension UInt8 {
 			}
 		}
 	}
-	public subscript(at: Int) -> UInt8 {
+	public subscript(at: Int) -> Self {
 		get {
 			return (self & (1 << at)) >> at
 		}
@@ -30,17 +30,38 @@ extension UInt8 {
 			}
 		}
 	}
+	public func toArray() -> [UInt8] {
+		guard self != 0 else {
+			return [0]
+		}
+		var val = self
+		var res: [UInt8] = []
+		while val > 0 {
+			res.append(UInt8(val & 0xff))
+			val >>= 8
+		}
+		return res.reversed()
+	}
+	public func toArray(size: Int) -> [UInt8] {
+		var val = self
+		var res: [UInt8] = Array(repeating: 0, count: size)
+        for i in (0..<size).reversed() {
+			res[i] = (UInt8(val & 0xff))
+			val >>= 8
+		}
+		return res
+	}
 }
 
 extension [UInt8] {
 	public func bit(_ at: Int) -> Bool {
-		return self[at / 8] & (1 << (at % 8)) != 0
+		return self[at / 8] & (1 << (7 - (at % 8))) != 0
 	}
 
 	public mutating func setBit(_ at: Int, _ val: Bool) {
 		switch val {
-			case false: self[at / 8] &= ~(1 << (at % 8))
-			case true: self[at / 8] |= (1 << (at % 8))
+			case false: self[at / 8] &= ~(1 << (7 - (at % 8)))
+			case true: self[at / 8] |= (1 << (7 - (at % 8)))
 		}
 	}
 
@@ -95,4 +116,30 @@ extension [UInt8] {
 			return soFar << 8 | UInt64(byte)
 		}
 	}
+    public func toHexString(sep: String = "") -> String {
+        var res = ""
+        for val in self {
+            if res.count > 0 {
+                res += sep
+            }
+            var hex =  "\(String(val, radix: 16))"
+            if hex.count < 2 {
+                hex = "0"+hex
+            }
+            res += hex
+        }
+        return res
+    }
+    public func toBitString() -> String {
+        var res = ""
+        for val in self {
+            let bits = String(val, radix: 2)
+            var pad = ""
+            for _ in 0..<(8 - bits.count) {
+                pad += "0"
+            }
+            res += pad + bits + " "
+        }
+        return res
+    }
 }

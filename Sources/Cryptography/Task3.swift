@@ -5,20 +5,22 @@ public final class Feistel: EncryptTransposer {
 		self.expander = expander
 		self.transposer = transposer
 	}
-	public func transpose(data: Block, key: Block) -> Block! {
-		guard data.count == key.count && data.count % 2 == 0 else {
+	public func transpose(data: Block, key: Block) -> Block? {
+		guard data.count % 2 == 0 else {
 			return nil
 		}
+		let data = transposer.preProcess(data: data)!
+
 		let middle = data.count / 2
-		let keys = self.expander.expandKey(key: key)
+		let keys = self.expander.expandKey(key: key)!
 		var left = Array(data[..<middle])
 		var right = Array(data[middle...])
 		for key in keys {
-            var x = transposer.transpose(data: right, key: key)!
-            x ^= left
-            left = right
-            right = x
+			var x = transposer.transpose(data: right, key: key)!
+			x ^= left
+			left = right
+			right = x
 		}
-		return right + left
+		return transposer.postProcess(data: right + left)
 	}
 }

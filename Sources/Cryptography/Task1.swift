@@ -1,5 +1,4 @@
-// only direct p-block rule is a map where
-public func transpose(data: [Byte], rule: [Int], order: BitOrder, firstBit: FirstBitIndex)
+public func permute(data: [Byte], rule: [Int], order: BitOrder, firstBit: FirstBitIndex)
 	-> [Byte]?
 {
 	let shift =
@@ -7,20 +6,18 @@ public func transpose(data: [Byte], rule: [Int], order: BitOrder, firstBit: Firs
 			case .one: 1
 			default: 0
 		}
-
-	if data.count * 8 % rule.count != 0 {
-		return nil
-	}
-	var b = Array.init(repeating: UInt8(0), count: data.count)
-	for i in 0..<data.count * 8 {
-		let block = i / rule.count
-		let blockShift = rule[i % rule.count] - shift
+	var res = Array.init(repeating: UInt8(0), count: (rule.count - 1) / 8 + 1)
+	for (i, pos) in rule.enumerated() {
+		guard pos - shift >= 0 && pos - shift <= data.count * 8 else {
+			print("exiting on \(pos) with rule: \(rule)")
+			return nil
+		}
 		let pos =
 			switch order {
-				case .forward: block * rule.count + blockShift
-				case .backward: (block + 1) * rule.count - blockShift - 1
+				case .forward: (pos - shift)
+				case .backward: res.count * 8 - (pos - shift) - 1
 			}
-		b.setBit(pos, data.bit(i))
+		res.setBit(i, data.bit(pos))
 	}
-	return b
+	return res
 }
