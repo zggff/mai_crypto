@@ -11,17 +11,17 @@ public enum FirstBitIndex {
 }
 
 public protocol KeyExpander: Sendable {
-	func expandKey(key: [Byte]) -> [[Byte]]
+	func expandKey(key: Block) -> [Block]
 }
 
 public protocol EncryptTransposer: Sendable {
-	func transpose(data: [Byte], key: [Byte]) -> [Byte]
+	func transpose(data: Block, key: Block) -> Block!
 }
 
 public protocol Encryptor {
-	mutating func setKey(key: [Byte])
-	func encrypt(data: [Byte]) async throws -> [Byte]
-	func decrypt(data: [Byte]) async throws -> [Byte]
+	mutating func setKey(key: Block)
+	func encrypt(data: Block) async throws -> Block
+	func decrypt(data: Block) async throws -> Block
 }
 
 public enum EncryptionMode: CaseIterable & Sendable {
@@ -198,7 +198,7 @@ public class SymmetricEncryptor: Encryptor {
 					tasks.append(
 						Task {
 							let new_block = encryptor.transpose(data: block, key: key)
-							return new_block
+							return new_block!
 						})
 				}
 				for task in tasks {
@@ -209,7 +209,7 @@ public class SymmetricEncryptor: Encryptor {
 				var blocks = [self.iv ?? Array(repeating: 0, count: key.count)]
 				for block in padded {
 					let new_block = self.encryptor.transpose(data: block ^ blocks.last!, key: key)
-					blocks.append(new_block)
+					blocks.append(new_block!)
 				}
 				res = blocks[1...].reduce(
 					[],
@@ -221,7 +221,7 @@ public class SymmetricEncryptor: Encryptor {
 				var blocks: [Block] = []
 				for block in padded {
 					let new_block = self.encryptor.transpose(data: block ^ to_xor, key: key)
-					blocks.append(new_block)
+					blocks.append(new_block!)
 					to_xor ^= to_xor
 					to_xor ^= block
 					to_xor ^= blocks[blocks.count - 1]
@@ -305,7 +305,7 @@ public class SymmetricEncryptor: Encryptor {
 					tasks.append(
 						Task {
 							let new_block = decryptor.transpose(data: block, key: key)
-							return new_block
+							return new_block!
 						})
 				}
 				for task in tasks {
