@@ -67,7 +67,8 @@ struct Test12 {
 		}
 
 		let cipher = SymmetricEncryptor(
-			key: Array(key.utf8), mode: EncryptionMode.ecb, padding: padding, iv: nil, args: [])!
+			key: Array(key.utf8), mode: EncryptionMode.ecb, padding: padding, iv: nil, args: [],
+			encryptor: AddEncryptor(), decryptor: AddDecryptor())!
 		for n in (1...32) {
 			let str: String = (1...n).reduce(
 				"", { partialResult, val in partialResult + " " + String(val) })
@@ -83,10 +84,26 @@ struct Test12 {
 		}
 	}
 
+	final class AddEncryptor: EncryptTransposer {
+		func transpose(data: Block, key: Block) -> Block {
+			var new_data = data
+			new_data += key
+			return new_data
+		}
+	}
+	final class AddDecryptor: EncryptTransposer {
+		func transpose(data: Block, key: Block) -> Block {
+			var new_data = data
+			new_data -= key
+			return new_data
+		}
+	}
+
 	@Test(
 		"1.2 encryption", arguments: PaddingMode.allCases,
 		[
-			EncryptionMode.ecb, EncryptionMode.cbc, EncryptionMode.pcbc, EncryptionMode.cfb,
+			EncryptionMode.ecb, EncryptionMode.cbc, 
+            EncryptionMode.pcbc, EncryptionMode.cfb,
 			EncryptionMode.ofb, EncryptionMode.ctr,
 		])
 	func testEncryption(padding: PaddingMode, mode: EncryptionMode) async throws {
@@ -94,7 +111,8 @@ struct Test12 {
 		let iv = "abcdefgh"
 		for n in (1...32) {
 			let cipher = SymmetricEncryptor(
-				key: Array(key.utf8), mode: mode, padding: padding, iv: Array(iv.utf8), args: [])!
+				key: Array(key.utf8), mode: mode, padding: padding, iv: Array(iv.utf8), args: [],
+				encryptor: AddEncryptor(), decryptor: AddDecryptor())!
 			let str: String = (1...n).reduce(
 				"", { partialResult, val in partialResult + " " + String(val) })
 			let data = Array(str.utf8)
