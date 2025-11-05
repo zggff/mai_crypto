@@ -103,7 +103,7 @@ public final class DesTransposer: EncryptTransposer {
 
 	public func transpose(data: Block, key: Block) throws -> Block {
 		guard data.count == 4 else {
-			throw EncryptionError.runtimeError("block must be 32 bits for des")
+			throw EncryptionError.blockSize(data.count, "block must be 4 bytes")
 		}
 		var data = try permute(
 			data: data, rule: Self.EBox, order: BitOrder.forward, firstBit: FirstBitIndex.one)
@@ -175,7 +175,7 @@ public final class DesExpander: KeyExpander {
 	}
 	public func expandKey(key: Block) throws -> [Block] {
 		guard key.count == 8 else {
-            throw EncryptionError.runtimeError("key must be 8 bytes long for des")
+			throw EncryptionError.keySize(key.count, "DES key must be 8 bytes")
 		}
 		let key = try permute(
 			data: key, rule: DesExpander.PC1(), order: BitOrder.forward,

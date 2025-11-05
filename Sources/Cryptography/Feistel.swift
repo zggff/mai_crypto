@@ -21,7 +21,7 @@ public final class Feistel<K: KeyExpander, T: EncryptTransposer>: Encryptor {
 
 	func transpose(data: Block, keys: [Block]) throws -> Block {
 		guard data.count % 2 == 0 else {
-			throw EncryptionError.blockSizeInvalid
+			throw EncryptionError.blockSize(data.count, "Blocks must be dividable in two")
 		}
 		let data = try transposer.preProcess(data: data)
 

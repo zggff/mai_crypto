@@ -77,8 +77,10 @@ public enum EncryptionError: Error {
 	case empty
 	case notFitting
 	case runtimeError(String)
-	case keyNotSet
-	case blockSizeInvalid
+	case blockSize(Int, String?)
+	case keySize(Int, String?)
+	case invalidPadding
+	case iv
 }
 
 public class SymmetricEncryptor<E: Encryptor> {
@@ -94,15 +96,15 @@ public class SymmetricEncryptor<E: Encryptor> {
 		args: [EncryptionModeArg]
 	) throws {
 		if key.count > 256 {
-			throw EncryptionError.runtimeError("key too large")
+			throw EncryptionError.keySize(key.count, "key must be less than 256 bytes long")
 		}
 		if padding == PaddingMode.ansiX923 && key.count > 8 {
-			throw EncryptionError.runtimeError("key for ansiX923 must be less than 8 bytes")
+			throw EncryptionError.keySize(key.count, "ansiX923 key must be 8 bytes")
 		}
 
 		if let iv = iv {
 			if iv.count != key.count {
-                throw EncryptionError.runtimeError("iv must have the same lenght as key")
+				throw EncryptionError.iv
 			}
 		}
 
@@ -172,9 +174,7 @@ public class SymmetricEncryptor<E: Encryptor> {
 			case .ansiX923:
 				let n = data[data.count - 1]
 				guard n <= key.count && n >= 1 && n < data.count else {
-					throw EncryptionError.runtimeError(
-						"\(n) - invalid ending for ansiX9.23 padding, value must be between 1 and 8"
-					)
+					throw EncryptionError.invalidPadding
 				}
 				data.removeLast(Int(n))
 		}
