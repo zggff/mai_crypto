@@ -176,12 +176,6 @@ public class SymmetricEncryptor: Encryptor {
 
 	}
 
-
-
-	static func updateIv(iv: Block, i: Int) -> Block {
-		return iv
-	}
-
 	public func encrypt(data: [Byte]) async throws -> [Byte] {
 		if data.isEmpty {
 			throw EncryptionError.empty
@@ -265,7 +259,8 @@ public class SymmetricEncryptor: Encryptor {
 				for (i, block) in padded.enumerated() {
 					tasks.append(
 						Task {
-							var new_block = SymmetricEncryptor.updateIv(iv: iv, i: i)
+							var new_block = iv
+							new_block += UInt64(i)
 							new_block = encryptor.transpose(data: new_block, key: key)
 							// SymmetricEncryptor.encryptBlock(
 							// 	block: &new_block, key: key)
@@ -277,9 +272,28 @@ public class SymmetricEncryptor: Encryptor {
 					arr.append(contentsOf: try await task.value)
 				}
 				res = arr
+			case .randomDelta:
+				let iv = self.iv ?? Array.random(size: key.count)
+				let delta_size = min(iv.count / 2, 8)
+				let delta_start = iv.count - delta_size + 1
+				let delta_bytes = Array(iv[delta_start...])
+				let delta = delta_bytes.toUInt()
 
-			default:
-				throw EncryptionError.runtimeError("encryption mode \(mode) not implemented")
+				var tasks: [Task<Block, Error>] = []
+				var arr: [Byte] = encryptor.transpose(data: iv, key: key)
+				for (i, block) in padded.enumerated() {
+					tasks.append(
+						Task {
+							var new_block = iv
+							new_block += delta * UInt64(i + 1)
+							new_block ^= block
+							return encryptor.transpose(data: new_block, key: key)
+						})
+				}
+				for task in tasks {
+					arr.append(contentsOf: try await task.value)
+				}
+				res = arr
 		}
 		return res
 	}
@@ -379,7 +393,8 @@ public class SymmetricEncryptor: Encryptor {
 				for (i, block) in padded.enumerated() {
 					tasks.append(
 						Task {
-							var new_block = SymmetricEncryptor.updateIv(iv: iv, i: i)
+							var new_block = iv
+							new_block += UInt64(i)
 							new_block = encryptor.transpose(data: new_block, key: key)
 							// SymmetricEncryptor.encryptBlock(
 							// 	block: &new_block, key: key)
@@ -392,8 +407,27 @@ public class SymmetricEncryptor: Encryptor {
 				}
 				res = arr
 
-			default:
-				throw EncryptionError.runtimeError("decryption mode \(mode) not implemented")
+			case .randomDelta:
+				let iv = decryptor.transpose(data: padded[0], key: key)!
+				let delta_size = min(iv.count / 2, 8)
+				let delta_start = iv.count - delta_size + 1
+				let delta_bytes = Array(iv[delta_start...])
+				let delta = delta_bytes.toUInt()
+				var tasks: [Task<Block, Error>] = []
+				var arr: [Byte] = []
+				for (i, block) in padded[1...].enumerated() {
+					tasks.append(
+						Task {
+							let new_block = decryptor.transpose(data: block, key: key)!
+							var new_iv = iv
+							new_iv += delta * UInt64(i + 1)
+							return new_block ^ new_iv
+						})
+				}
+				for task in tasks {
+					arr.append(contentsOf: try await task.value)
+				}
+				res = arr
 		}
 		try unpadData(data: &res)
 		return res

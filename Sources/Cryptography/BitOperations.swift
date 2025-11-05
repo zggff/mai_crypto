@@ -59,16 +59,19 @@ extension [UInt8] {
 			a[i] &-= b[i]
 		}
 	}
-	public static func += (a: inout [UInt8], b: Int) {
+	public static func += (a: inout [UInt8], b: UInt64) {
 		var remaining = b
 		for i in (0..<a.count).reversed() {
-			let res = remaining + Int(a[i])
+			let res = remaining + UInt64(a[i])
 			a[i] = UInt8(res % 256)
-            remaining = res / 256
+			remaining = res / 256
 			if remaining == 0 {
 				break
 			}
 		}
+	}
+	public static func += (a: inout [UInt8], b: Int) {
+		a += UInt64(b)
 	}
 
 	public static func ^ (a: [UInt8], b: [UInt8]) -> [UInt8] {
@@ -77,5 +80,19 @@ extension [UInt8] {
 			res[i] ^= b[i]
 		}
 		return res
+	}
+
+	public static func random(size: Int) -> [UInt8] {
+		var res = Array.init(repeating: 0, count: size)
+		for i in 0..<size {
+			res[i] = UInt8.random(in: 0...255)
+		}
+		return res
+	}
+
+	public func toUInt() -> UInt64 {
+		return self.reduce(0) { soFar, byte in
+			return soFar << 8 | UInt64(byte)
+		}
 	}
 }

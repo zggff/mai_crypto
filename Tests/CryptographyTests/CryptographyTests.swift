@@ -85,14 +85,14 @@ struct Test12 {
 	}
 
 	final class AddEncryptor: EncryptTransposer {
-		func transpose(data: Block, key: Block) -> Block {
+		func transpose(data: Block, key: Block) -> Block! {
 			var new_data = data
 			new_data += key
 			return new_data
 		}
 	}
 	final class AddDecryptor: EncryptTransposer {
-		func transpose(data: Block, key: Block) -> Block {
+		func transpose(data: Block, key: Block) -> Block! {
 			var new_data = data
 			new_data -= key
 			return new_data
@@ -101,11 +101,8 @@ struct Test12 {
 
 	@Test(
 		"1.2 encryption", arguments: PaddingMode.allCases,
-		[
-			EncryptionMode.ecb, EncryptionMode.cbc, 
-            EncryptionMode.pcbc, EncryptionMode.cfb,
-			EncryptionMode.ofb, EncryptionMode.ctr,
-		])
+		EncryptionMode.allCases
+	)
 	func testEncryption(padding: PaddingMode, mode: EncryptionMode) async throws {
 		let key = "12345678"
 		let iv = "abcdefgh"
