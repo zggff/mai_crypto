@@ -1,8 +1,6 @@
-public func substitute() {
+public typealias DesEncryptor = Feistel<DesExpander, DesTransposer>
 
-}
-
-public final class DESEncryptor: EncryptTransposer {
+public final class DesTransposer: EncryptTransposer {
 	public init() {}
 	static let Ip = [
 		58, 50, 42, 34, 26, 18, 10, 2,
@@ -126,14 +124,14 @@ public final class DESEncryptor: EncryptTransposer {
 	}
 }
 
-public final class DESKeysDecode: KeyExpander {
-	public init() {}
-	public func expandKey(key: Block) -> [Block]? {
-		return DESKeys().expandKey(key: key)?.reversed()
-	}
-}
+// public final class DESKeysDecode: KeyExpander {
+// 	public init() {}
+// 	public func expandKey(key: Block) -> [Block]? {
+// 		return DESKeys().expandKey(key: key)?.reversed()
+// 	}
+// }
 
-public final class DESKeys: KeyExpander {
+public final class DesExpander: KeyExpander {
 	public init() {}
 	public static func PC1() -> [Int] {
 		let res = [
@@ -180,7 +178,7 @@ public final class DESKeys: KeyExpander {
 			return nil
 		}
 		let key = permute(
-			data: key, rule: DESKeys.PC1(), order: BitOrder.forward,
+			data: key, rule: DesExpander.PC1(), order: BitOrder.forward,
 			firstBit: FirstBitIndex.one)!
 		let ukey = key.toUInt()
 		let key_shift = Self.KeyShift()

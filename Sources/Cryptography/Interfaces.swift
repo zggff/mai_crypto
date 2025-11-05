@@ -11,10 +11,12 @@ public enum FirstBitIndex {
 }
 
 public protocol KeyExpander: Sendable {
+    init()
 	func expandKey(key: Block) -> [Block]?
 }
 
 public protocol EncryptTransposer: Sendable {
+    init()
 	func transpose(data: Block, key: Block) -> Block?
 	func preProcess(data: Block) -> Block?
 	func postProcess(data: Block) -> Block?
@@ -25,10 +27,10 @@ extension EncryptTransposer {
 	public func postProcess(data: Block) -> Block? { return data }
 }
 
-public protocol Encryptor {
-	mutating func setKey(key: Block)
-	func encrypt(data: Block) async throws -> Block
-	func decrypt(data: Block) async throws -> Block
+public protocol Encryptor: Sendable {
+    init(key: Block)
+	func encrypt(data: Block) throws -> Block
+	func decrypt(data: Block) throws -> Block
 }
 
 public enum EncryptionMode: CaseIterable & Sendable {
@@ -75,20 +77,21 @@ public enum EncryptionError: Error {
 	case empty
 	case notFitting
 	case runtimeError(String)
+    case keyNotSet
+    case blockSizeInvalid
 }
 
-public class SymmetricEncryptor: Encryptor {
-	var key: [Byte]
+public class SymmetricEncryptor<E: Encryptor> {
+	let key: [Byte]
 	let mode: EncryptionMode
 	let padding: PaddingMode
 	let iv: [Byte]?
 	let args: [EncryptionModeArg]
-	let encryptor: EncryptTransposer
-	let decryptor: EncryptTransposer
+	let encryptor: E
 
 	public init?(
 		key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
-		args: [EncryptionModeArg], encryptor: EncryptTransposer, decryptor: EncryptTransposer
+		args: [EncryptionModeArg]
 	) {
 		if key.count > 256 {
 			return nil
@@ -108,12 +111,7 @@ public class SymmetricEncryptor: Encryptor {
 		self.padding = padding
 		self.iv = iv
 		self.args = args
-		self.encryptor = encryptor
-		self.decryptor = decryptor
-	}
-
-	public func setKey(key: [Byte]) {
-		self.key = key
+		self.encryptor = E(key: key)
 	}
 
 	func padData(data: [Byte]) -> [Block] {
@@ -198,8 +196,8 @@ public class SymmetricEncryptor: Encryptor {
 				for block in padded {
 					tasks.append(
 						Task {
-							let new_block = encryptor.transpose(data: block, key: key)
-							return new_block!
+							let new_block = try encryptor.encrypt(data: block)
+							return new_block
 						})
 				}
 				for task in tasks {
@@ -209,8 +207,8 @@ public class SymmetricEncryptor: Encryptor {
 			case .cbc:
 				var blocks = [self.iv ?? Array(repeating: 0, count: key.count)]
 				for block in padded {
-					let new_block = self.encryptor.transpose(data: block ^ blocks.last!, key: key)
-					blocks.append(new_block!)
+					let new_block = try self.encryptor.encrypt(data: block ^ blocks.last!)
+					blocks.append(new_block)
 				}
 				res = blocks[1...].reduce(
 					[],
@@ -221,8 +219,8 @@ public class SymmetricEncryptor: Encryptor {
 				var to_xor = self.iv ?? Array(repeating: 0, count: key.count)
 				var blocks: [Block] = []
 				for block in padded {
-					let new_block = self.encryptor.transpose(data: block ^ to_xor, key: key)
-					blocks.append(new_block!)
+					let new_block = try self.encryptor.encrypt(data: block ^ to_xor)
+					blocks.append(new_block)
 					to_xor ^= to_xor
 					to_xor ^= block
 					to_xor ^= blocks[blocks.count - 1]
@@ -236,7 +234,7 @@ public class SymmetricEncryptor: Encryptor {
 				let iv = self.iv ?? Array(repeating: 0, count: key.count)
 				var blocks: [Block] = [iv]
 				for block in padded {
-					blocks.lastMut = self.encryptor.transpose(data: blocks.last!, key: key)!
+					blocks.lastMut = try self.encryptor.encrypt(data: blocks.last!)
 					// SymmetricEncryptor.encryptBlock(block: &blocks.lastMut, key: key)
 					blocks.lastMut ^= block
 					blocks.append(blocks.lastMut)
@@ -250,7 +248,7 @@ public class SymmetricEncryptor: Encryptor {
 				var prev = self.iv ?? Array(repeating: 0, count: key.count)
 				var blocks: [Block] = []
 				for block in padded {
-					prev = self.encryptor.transpose(data: prev, key: key)!
+					prev = try self.encryptor.encrypt(data: prev)
 					// SymmetricEncryptor.encryptBlock(block: &prev, key: key)
 					blocks.append(block ^ prev)
 				}
@@ -268,7 +266,7 @@ public class SymmetricEncryptor: Encryptor {
 						Task {
 							var new_block = iv
 							new_block += UInt64(i)
-							new_block = encryptor.transpose(data: new_block, key: key)!
+							new_block = try encryptor.encrypt(data: new_block)
 							// SymmetricEncryptor.encryptBlock(
 							// 	block: &new_block, key: key)
 							new_block ^= block
@@ -287,14 +285,14 @@ public class SymmetricEncryptor: Encryptor {
 				let delta = delta_bytes.toUInt()
 
 				var tasks: [Task<Block, Error>] = []
-				var arr: [Byte] = encryptor.transpose(data: iv, key: key)!
+				var arr: [Byte] = try encryptor.encrypt(data: iv)
 				for (i, block) in padded.enumerated() {
 					tasks.append(
 						Task {
 							var new_block = iv
 							new_block += delta * UInt64(i + 1)
 							new_block ^= block
-							return encryptor.transpose(data: new_block, key: key)!
+							return try encryptor.encrypt(data: new_block)
 						})
 				}
 				for task in tasks {
@@ -316,8 +314,7 @@ public class SymmetricEncryptor: Encryptor {
 		let padded = data.splitInSubArrays(into: key.count)
 		let key = self.key
 		var res: [Byte]
-		let decryptor = self.decryptor
-		let encryptor = self.encryptor
+        let encryptor = self.encryptor
 		switch mode {
 			case .ecb:
 				var tasks: [Task<Block, Error>] = []
@@ -325,8 +322,8 @@ public class SymmetricEncryptor: Encryptor {
 				for block in padded {
 					tasks.append(
 						Task {
-							let new_block = decryptor.transpose(data: block, key: key)
-							return new_block!
+							let new_block = try encryptor.decrypt(data: block)
+							return new_block
 						})
 				}
 				for task in tasks {
@@ -337,7 +334,7 @@ public class SymmetricEncryptor: Encryptor {
 				var blocks: [Block] = []
 				var prev_block = self.iv ?? Array(repeating: 0, count: key.count)
 				for block in padded {
-					blocks.append(self.decryptor.transpose(data: block, key: key)!)
+					blocks.append(try encryptor.decrypt(data: block))
 					// blocks.append(block)
 					// SymmetricEncryptor.decryptBlock(block: &blocks[blocks.count - 1], key: key)
 					blocks[blocks.count - 1] ^= prev_block
@@ -352,7 +349,7 @@ public class SymmetricEncryptor: Encryptor {
 				var to_xor = self.iv ?? Array(repeating: 0, count: key.count)
 				var blocks: [Block] = []
 				for block in padded {
-					blocks.append(self.decryptor.transpose(data: block, key: key)!)
+					blocks.append(try encryptor.decrypt(data: block))
 					// blocks.append(block)
 					// SymmetricEncryptor.decryptBlock(block: &blocks.lastMut, key: key)
 					blocks.lastMut ^= to_xor
@@ -369,7 +366,7 @@ public class SymmetricEncryptor: Encryptor {
 				let iv = self.iv ?? Array(repeating: 0, count: key.count)
 				var blocks: [Block] = [iv]
 				for block in padded {
-					blocks.lastMut = self.encryptor.transpose(data: blocks.last!, key: key)!
+					blocks.lastMut = try encryptor.encrypt(data: blocks.last!)
 
 					// SymmetricEncryptor.encryptBlock(block: &blocks.lastMut, key: key)
 					blocks.lastMut ^= block
@@ -384,7 +381,7 @@ public class SymmetricEncryptor: Encryptor {
 				var prev = self.iv ?? Array(repeating: 0, count: key.count)
 				var blocks: [Block] = []
 				for block in padded {
-					prev = encryptor.transpose(data: prev, key: key)!
+					prev = try encryptor.encrypt(data: prev)
 					// SymmetricEncryptor.encryptBlock(block: &prev, key: key)
 					blocks.append(block ^ prev)
 				}
@@ -402,7 +399,7 @@ public class SymmetricEncryptor: Encryptor {
 						Task {
 							var new_block = iv
 							new_block += UInt64(i)
-							new_block = encryptor.transpose(data: new_block, key: key)!
+							new_block = try encryptor.encrypt(data: new_block)
 							// SymmetricEncryptor.encryptBlock(
 							// 	block: &new_block, key: key)
 							new_block ^= block
@@ -415,7 +412,7 @@ public class SymmetricEncryptor: Encryptor {
 				res = arr
 
 			case .randomDelta:
-				let iv = decryptor.transpose(data: padded[0], key: key)!
+				let iv = try encryptor.decrypt(data: padded[0])
 				let delta_size = min(iv.count / 2, 8)
 				let delta_start = iv.count - delta_size + 1
 				let delta_bytes = Array(iv[delta_start...])
@@ -425,7 +422,7 @@ public class SymmetricEncryptor: Encryptor {
 				for (i, block) in padded[1...].enumerated() {
 					tasks.append(
 						Task {
-							let new_block = decryptor.transpose(data: block, key: key)!
+							let new_block = try encryptor.decrypt(data: block)
 							var new_iv = iv
 							new_iv += delta * UInt64(i + 1)
 							return new_block ^ new_iv
