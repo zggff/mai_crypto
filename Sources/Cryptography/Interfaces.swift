@@ -83,16 +83,16 @@ public enum EncryptionError: Error {
 	case iv
 }
 
-public class SymmetricEncryptor<E: Encryptor> {
+public class SymmetricEncryptor {
 	let key: [Byte]
 	let mode: EncryptionMode
 	let padding: PaddingMode
 	let iv: [Byte]?
 	let args: [EncryptionModeArg]
-	let encryptor: E
+	let encryptor: any Encryptor
 
 	public init(
-		key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
+		type: Encryptor.Type, key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
 		args: [EncryptionModeArg]
 	) throws {
 		if key.count > 256 {
@@ -113,7 +113,7 @@ public class SymmetricEncryptor<E: Encryptor> {
 		self.padding = padding
 		self.iv = iv
 		self.args = args
-		self.encryptor = try E(key: key)
+		self.encryptor = try type.init(key: key)
 	}
 
 	func padData(data: [Byte]) -> [Block] {

@@ -13,6 +13,7 @@ let package = Package(
 			targets: ["Cryptography"]
 		),
 		.executable(name: "Main", targets: ["Main"]),
+		.executable(name: "Crypto", targets: ["Crypto"]),
 	],
 	targets: [
 		// Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -22,6 +23,10 @@ let package = Package(
 		),
 		.executableTarget(
 			name: "Main",
+			dependencies: ["Cryptography"],
+		),
+        .executableTarget(
+			name: "Crypto",
 			dependencies: ["Cryptography"],
 		),
 

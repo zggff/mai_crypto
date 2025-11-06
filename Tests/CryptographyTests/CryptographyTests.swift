@@ -39,7 +39,8 @@ struct Test12 {
 			return
 		}
 
-		let cipher = try SymmetricEncryptor<AddEncryptor>(
+		let cipher = try SymmetricEncryptor(
+			type: AddEncryptor.self,
 			key: Array(key.utf8), mode: EncryptionMode.ecb, padding: padding, iv: nil, args: [])
 		for n in (1...32) {
 			let str: String = (1...n).reduce(
@@ -82,7 +83,8 @@ struct Test12 {
 		let key = "12345678"
 		let iv = "abcdefgh"
 		for n in (1...32) {
-			let cipher = try SymmetricEncryptor<AddEncryptor>(
+			let cipher = try SymmetricEncryptor(
+				type: AddEncryptor.self,
 				key: Array(key.utf8), mode: mode, padding: padding, iv: Array(iv.utf8), args: [])
 			let str: String = (1...n).reduce(
 				"", { partialResult, val in partialResult + " " + String(val) })
@@ -106,7 +108,8 @@ struct TestDes {
 	func desTest() async throws {
 		let key = Array("12345678".utf8)
 		let text = Array("Lorem ipsum dolor".utf8)
-		let encryptor = try SymmetricEncryptor<DesEncryptor>(
+		let encryptor = try SymmetricEncryptor(
+			type: DesEncryptor.self,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
 			args: [])
 		let encrypted = try await encryptor.encrypt(data: text)
@@ -117,7 +120,8 @@ struct TestDes {
 	@Test("DES encryption as example")
 	func desTestComprehensive() async throws {
 		let key = Array("12345678".utf8)
-		let cipher = try SymmetricEncryptor<DesEncryptor>(
+		let cipher = try SymmetricEncryptor(
+			type: DesEncryptor.self,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
 			args: [])
 		for n in (1...32) {
@@ -140,12 +144,13 @@ struct TestDeal {
 	@Test("Deal encryption", arguments: [16])
 	func desTestComprehensive(size: Int) async throws {
 		let key = Array.random(size: size)
-		let cipher = try SymmetricEncryptor<DealEncryptor>(
+		let cipher = try SymmetricEncryptor(
+			type: DealEncryptor.self,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
 			args: [])
 		for n in (1...10) {
 			var data = Array.random(size: n * 60)
-            try cipher.unpadData(data: &data)
+			try cipher.unpadData(data: &data)
 			let encr = try await cipher.encrypt(data: data)
 			let res = try await cipher.decrypt(data: encr)
 			#expect(res == data, "\(data) with \(key)")
