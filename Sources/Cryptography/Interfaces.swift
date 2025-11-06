@@ -80,6 +80,7 @@ public enum EncryptionError: Error {
 	case blockSize(Int, String?)
 	case keySize(Int, String?)
 	case invalidPadding
+    case outOfRange(Int, Int)
 	case iv
 }
 

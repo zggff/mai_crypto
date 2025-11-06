@@ -9,7 +9,7 @@ public func permute(data: [Byte], rule: [Int], order: BitOrder, firstBit: FirstB
 	var res = Array.init(repeating: UInt8(0), count: (rule.count - 1) / 8 + 1)
 	for (i, pos) in rule.enumerated() {
 		guard pos - shift >= 0 && pos - shift <= data.count * 8 else {
-			throw EncryptionError.runtimeError("exiting on \(pos) with rule: \(rule)")
+            throw EncryptionError.outOfRange(pos - shift, data.count)
 		}
 		let pos =
 			switch order {
