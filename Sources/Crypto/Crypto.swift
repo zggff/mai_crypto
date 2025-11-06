@@ -138,15 +138,12 @@ struct Main {
 			output.closeFile()
 		}
 
-		let max_size = 1024 * 1024  // read in chunks of megabyte
-		while true {
-			let data = input.readData(ofLength: max_size)
-            if data.isEmpty {
-                break
-            }
-			let encrypted = try await operation(Array(data))
-			try output.write(contentsOf: encrypted)
-		}
+        let data = try input.readToEnd()
+        guard data != nil else {
+            throw RunError("failed to read")
+        }
+        let encrypted = try await operation(Array(data!))
+        try output.write(contentsOf: encrypted)
 
 	}
 
@@ -184,7 +181,7 @@ struct Main {
 			switch e {
 				case .iv: print("ERROR: iv must be the same length as key")
 				case .keySize(_, let msg): print("ERROR: invalid key length: \(msg ?? "")")
-				case .invalidPadding: print("ERROR: invalid key length")
+				case .invalidPadding: print("ERROR: invalid padding")
 				default: print("ERROR: fatal")
 			}
 			exit(-1)
