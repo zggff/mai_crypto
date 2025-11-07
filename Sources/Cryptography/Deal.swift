@@ -7,13 +7,19 @@ public final class DealTransposer: EncryptTransposer {
 		let des = try DesEncryptor(key: key)
 		return try des.encrypt(data: data)
 	}
-	public func preProcess(data: Block) throws -> Block {
+	public func preProcess(data: Block, encrypt: Bool = true) throws -> Block {
+        if encrypt {
+            return data
+        }
 		let middle = data.count / 2
 		let left = Array(data[..<middle])
 		let right = Array(data[middle...])
 		return right + left
 	}
-	public func postProcess(data: Block) throws -> Block {
+	public func postProcess(data: Block, encrypt: Bool = true) throws -> Block {
+        guard encrypt else {
+            return data
+        }
 		let middle = data.count / 2
 		let left = Array(data[..<middle])
 		let right = Array(data[middle...])

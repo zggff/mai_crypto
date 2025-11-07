@@ -23,8 +23,8 @@ extension KeyExpander {
 public protocol EncryptTransposer: Sendable {
 	init()
 	func transpose(data: Block, key: Block) throws -> Block
-	func preProcess(data: Block) throws -> Block
-	func postProcess(data: Block) throws -> Block
+	func preProcess(data: Block, encrypt: Bool) throws -> Block
+	func postProcess(data: Block, encrypt: Bool) throws -> Block
 	static func BLOCK_SIZE() -> Int?
 }
 
@@ -33,8 +33,8 @@ extension EncryptTransposer {
 }
 
 extension EncryptTransposer {
-	public func preProcess(data: Block) throws -> Block { return data }
-	public func postProcess(data: Block) throws -> Block { return data }
+	public func preProcess(data: Block, encrypt: Bool = true) throws -> Block { return data }
+	public func postProcess(data: Block, encrypt: Bool = true) throws -> Block { return data }
 }
 
 public protocol Encryptor: Sendable {

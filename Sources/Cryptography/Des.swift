@@ -92,12 +92,12 @@ public final class DesTransposer: EncryptTransposer {
 		],
 	]
 
-	public func preProcess(data: Block) throws -> Block {
+	public func preProcess(data: Block, encrypt: Bool = true) throws -> Block {
 		return try permute(
 			data: data, rule: Self.Ip, order: BitOrder.forward, firstBit: FirstBitIndex.one)
 	}
 
-	public func postProcess(data: Block) throws -> Block {
+	public func postProcess(data: Block, encrypt: Bool = true) throws -> Block {
 		return try permute(
 			data: data, rule: Self.Fp, order: BitOrder.forward, firstBit: FirstBitIndex.one)
 	}

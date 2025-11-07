@@ -12,18 +12,18 @@ public final class Feistel<K: KeyExpander, T: EncryptTransposer>: Encryptor {
 	}
 
 	public func encrypt(data: Block) throws -> Block {
-		return try self.transpose(data: data, keys: encrypt_keys)
+		return try self.transpose(data: data, keys: encrypt_keys, encrypt: true)
 	}
 
 	public func decrypt(data: Block) throws -> Block {
-		return try self.transpose(data: data, keys: decrypt_keys)
+		return try self.transpose(data: data, keys: decrypt_keys, encrypt: false)
 	}
 
-	func transpose(data: Block, keys: [Block]) throws -> Block {
+	func transpose(data: Block, keys: [Block], encrypt: Bool) throws -> Block {
 		guard data.count % 2 == 0 else {
 			throw EncryptionError.blockSize(data.count, "Blocks must be dividable in two")
 		}
-		let data = try transposer.preProcess(data: data)
+		let data = try transposer.preProcess(data: data, encrypt: encrypt)
 
 		let middle = data.count / 2
 		var left = Array(data[..<middle])
@@ -34,7 +34,7 @@ public final class Feistel<K: KeyExpander, T: EncryptTransposer>: Encryptor {
 			left = right
 			right = x
 		}
-		return try transposer.postProcess(data: right + left)
+		return try transposer.postProcess(data: right + left, encrypt: encrypt)
 	}
 
     public static func BLOCK_SIZE() -> Int? {return T.BLOCK_SIZE()}
