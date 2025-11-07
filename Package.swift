@@ -9,30 +9,30 @@ let package = Package(
 	products: [
 		// Products define the executables and libraries a package produces, making them visible to other packages.
 		.library(
-			name: "Cryptography",
-			targets: ["Cryptography"]
+			name: "Des",
+			targets: ["Des"]
 		),
 		.executable(name: "Main", targets: ["Main"]),
-		.executable(name: "Crypto", targets: ["Crypto"]),
+		.executable(name: "DesCmd", targets: ["DesCmd"]),
 	],
 	targets: [
 		// Targets are the basic building blocks of a package, defining a module or a test suite.
 		// Targets can depend on other targets in this package and products from dependencies.
 		.target(
-			name: "Cryptography"
+			name: "Des"
 		),
 		.executableTarget(
 			name: "Main",
-			dependencies: ["Cryptography"],
+			dependencies: ["Des"],
 		),
         .executableTarget(
-			name: "Crypto",
-			dependencies: ["Cryptography"],
+			name: "DesCmd",
+			dependencies: ["Des"],
 		),
 
 		.testTarget(
-			name: "CryptographyTests",
-			dependencies: ["Cryptography"]
+			name: "DesTests",
+			dependencies: ["Des"]
 		),
 	]
 )

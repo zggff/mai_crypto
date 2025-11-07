@@ -1,6 +1,6 @@
 import Testing
 
-@testable import Cryptography
+@testable import Des
 
 @Test("Test general") func testBitOperations() async throws {
 	var a: UInt8 = 0
@@ -85,7 +85,8 @@ struct Test12 {
 		for n in (1...32) {
 			let cipher = try SymmetricEncryptor(
 				type: AddEncryptor.self,
-				key: Array(key.utf8), mode: mode, padding: padding, iv: Array(iv.utf8), args: [])
+				key: Array(key.utf8), mode: mode, padding: padding, iv: Array(iv.utf8), args: []
+			)
 			let str: String = (1...n).reduce(
 				"", { partialResult, val in partialResult + " " + String(val) })
 			let data = Array(str.utf8)
