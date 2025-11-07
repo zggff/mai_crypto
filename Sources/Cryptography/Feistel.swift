@@ -36,4 +36,7 @@ public final class Feistel<K: KeyExpander, T: EncryptTransposer>: Encryptor {
 		}
 		return try transposer.postProcess(data: right + left)
 	}
+
+    public static func BLOCK_SIZE() -> Int? {return T.BLOCK_SIZE()}
+    public static func KEY_SIZES() -> [Int]? {return K.KEY_SIZES()}
 }

@@ -13,6 +13,11 @@ public enum FirstBitIndex {
 public protocol KeyExpander: Sendable {
 	init()
 	func expandKey(key: Block) throws -> [Block]
+	static func KEY_SIZES() -> [Int]?
+}
+
+extension KeyExpander {
+	public static func KEY_SIZES() -> [Int]? {return nil}
 }
 
 public protocol EncryptTransposer: Sendable {
@@ -20,6 +25,11 @@ public protocol EncryptTransposer: Sendable {
 	func transpose(data: Block, key: Block) throws -> Block
 	func preProcess(data: Block) throws -> Block
 	func postProcess(data: Block) throws -> Block
+	static func BLOCK_SIZE() -> Int?
+}
+
+extension EncryptTransposer {
+	public static func BLOCK_SIZE() -> Int? {return nil}
 }
 
 extension EncryptTransposer {
@@ -31,6 +41,13 @@ public protocol Encryptor: Sendable {
 	init(key: Block) throws
 	func encrypt(data: Block) throws -> Block
 	func decrypt(data: Block) throws -> Block
+	static func BLOCK_SIZE() -> Int?
+	static func KEY_SIZES() -> [Int]?
+}
+
+extension Encryptor {
+	public static func BLOCK_SIZE() -> Int? { return nil }
+	public static func KEY_SIZES() -> [Int]? { return nil }
 }
 
 public enum EncryptionMode: CaseIterable & Sendable {
@@ -74,18 +91,18 @@ extension Array {
 }
 
 public enum EncryptionError: Error {
-	case empty
 	case notFitting
 	case runtimeError(String)
 	case blockSize(Int, String?)
 	case keySize(Int, String?)
 	case invalidPadding
-    case outOfRange(Int, Int)
+	case outOfRange(Int, Int)
 	case iv
 }
 
 public class SymmetricEncryptor {
-	let key: [Byte]
+	// let key: [Byte]
+	let block_size: Int
 	let mode: EncryptionMode
 	let padding: PaddingMode
 	let iv: [Byte]?
@@ -96,31 +113,34 @@ public class SymmetricEncryptor {
 		type: Encryptor.Type, key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
 		args: [EncryptionModeArg]
 	) throws {
-		if key.count > 256 {
-			throw EncryptionError.keySize(key.count, "key must be less than 256 bytes long")
-		}
-		if padding == PaddingMode.ansiX923 && key.count > 8 {
-			throw EncryptionError.keySize(key.count, "ansiX923 key must be 8 bytes")
-		}
-
-		if let iv = iv {
-			if iv.count != key.count {
-				throw EncryptionError.iv
-			}
-		}
-
-		self.key = key
+		self.block_size = type.BLOCK_SIZE() ?? key.count
 		self.mode = mode
 		self.padding = padding
 		self.iv = iv
 		self.args = args
+		if let key_sizes = type.KEY_SIZES() {
+			if !key_sizes.contains(key.count) {
+				throw EncryptionError.keySize(key.count, "key size must be one of \(key_sizes)")
+			}
+
+		}
+		if let iv = iv {
+			if iv.count != self.block_size {
+				throw EncryptionError.iv
+			}
+		}
+		if padding == PaddingMode.ansiX923 && block_size > 8 {
+			throw EncryptionError.blockSize(key.count, "ansiX923 block must be <= 8 bytes")
+		}
+
 		self.encryptor = try type.init(key: key)
 	}
 
 	func padData(data: [Byte]) -> [Block] {
-		var blocks = data.splitInSubArrays(into: key.count)
+		var blocks = data.splitInSubArrays(into: block_size)
 		let to_pad =
-			blocks.last!.count % key.count == 0 ? 0 : key.count - (blocks.last!.count % key.count)
+			blocks.last!.count % block_size == 0
+			? 0 : block_size - (blocks.last!.count % block_size)
 		// because ansiX923 always adds between 1 to 8 bytes
 		if padding != PaddingMode.ansiX923 && to_pad == 0 {
 			return blocks
@@ -150,7 +170,7 @@ public class SymmetricEncryptor {
 	func unpadData(data: inout [Byte]) throws {
 		switch self.padding {
 			case .zeros:
-				for i in (1...key.count) {
+				for i in (1...block_size) {
 					if data[data.count - i] != 0 {
 						data.removeLast(i - 1)
 						break
@@ -158,7 +178,7 @@ public class SymmetricEncryptor {
 				}
 			case .pkcs7:
 				let n = data[data.count - 1]
-				guard n < key.count && n < data.count else {
+				guard n < block_size && n < data.count else {
 					return
 				}
 
@@ -168,13 +188,13 @@ public class SymmetricEncryptor {
 				}
 			case .iso10126:
 				let n = data[data.count - 1]
-				guard n < key.count && n < data.count else {
+				guard n < block_size && n < data.count else {
 					return
 				}
 				data.removeLast(Int(n))
 			case .ansiX923:
 				let n = data[data.count - 1]
-				guard n <= key.count && n >= 1 && n < data.count else {
+				guard n <= block_size && n >= 1 && n < data.count else {
 					throw EncryptionError.invalidPadding
 				}
 				data.removeLast(Int(n))
@@ -184,10 +204,10 @@ public class SymmetricEncryptor {
 
 	public func encrypt(data: [Byte]) async throws -> [Byte] {
 		if data.isEmpty {
-			throw EncryptionError.empty
+			return []
 		}
 		let padded = padData(data: data)
-		let key = self.key
+		// let key = self.key
 		let res: [Byte]
 		let encryptor = self.encryptor
 		switch mode {
@@ -206,7 +226,7 @@ public class SymmetricEncryptor {
 				}
 				res = arr
 			case .cbc:
-				var blocks = [self.iv ?? Array(repeating: 0, count: key.count)]
+				var blocks = [self.iv ?? Array(repeating: 0, count: block_size)]
 				for block in padded {
 					let new_block = try self.encryptor.encrypt(data: block ^ blocks.last!)
 					blocks.append(new_block)
@@ -217,7 +237,7 @@ public class SymmetricEncryptor {
 						return partial + block
 					})
 			case .pcbc:
-				var to_xor = self.iv ?? Array(repeating: 0, count: key.count)
+				var to_xor = self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = []
 				for block in padded {
 					let new_block = try self.encryptor.encrypt(data: block ^ to_xor)
@@ -232,7 +252,7 @@ public class SymmetricEncryptor {
 						return partial + block
 					})
 			case .cfb:
-				let iv = self.iv ?? Array(repeating: 0, count: key.count)
+				let iv = self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = [iv]
 				for block in padded {
 					blocks.lastMut = try self.encryptor.encrypt(data: blocks.last!)
@@ -246,7 +266,7 @@ public class SymmetricEncryptor {
 						return partial + block
 					})
 			case .ofb:
-				var prev = self.iv ?? Array(repeating: 0, count: key.count)
+				var prev = self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = []
 				for block in padded {
 					prev = try self.encryptor.encrypt(data: prev)
@@ -261,7 +281,7 @@ public class SymmetricEncryptor {
 			case .ctr:
 				var tasks: [Task<Block, Error>] = []
 				var arr: [Byte] = []
-				let iv = self.iv ?? Array(repeating: 0, count: key.count)
+				let iv = self.iv ?? Array(repeating: 0, count: block_size)
 				for (i, block) in padded.enumerated() {
 					tasks.append(
 						Task {
@@ -279,7 +299,7 @@ public class SymmetricEncryptor {
 				}
 				res = arr
 			case .randomDelta:
-				let iv = self.iv ?? Array.random(size: key.count)
+				let iv = self.iv ?? Array.random(size: block_size)
 				let delta_size = min(iv.count / 2, 8)
 				let delta_start = iv.count - delta_size + 1
 				let delta_bytes = Array(iv[delta_start...])
@@ -306,14 +326,13 @@ public class SymmetricEncryptor {
 
 	public func decrypt(data: [Byte]) async throws -> [Byte] {
 		if data.isEmpty {
-			throw EncryptionError.empty
+            return []
 		}
-		if data.count % key.count != 0 {
+		if data.count % block_size != 0 {
 			throw EncryptionError.notFitting
 		}
 
-		let padded = data.splitInSubArrays(into: key.count)
-		let key = self.key
+		let padded = data.splitInSubArrays(into: block_size)
 		var res: [Byte]
 		let encryptor = self.encryptor
 		switch mode {
@@ -333,7 +352,7 @@ public class SymmetricEncryptor {
 				res = arr
 			case .cbc:
 				var blocks: [Block] = []
-				var prev_block = self.iv ?? Array(repeating: 0, count: key.count)
+				var prev_block = self.iv ?? Array(repeating: 0, count: block_size)
 				for block in padded {
 					blocks.append(try encryptor.decrypt(data: block))
 					// blocks.append(block)
@@ -347,7 +366,7 @@ public class SymmetricEncryptor {
 						return partial + block
 					})
 			case .pcbc:
-				var to_xor = self.iv ?? Array(repeating: 0, count: key.count)
+				var to_xor = self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = []
 				for block in padded {
 					blocks.append(try encryptor.decrypt(data: block))
@@ -364,7 +383,7 @@ public class SymmetricEncryptor {
 						return partial + block
 					})
 			case .cfb:
-				let iv = self.iv ?? Array(repeating: 0, count: key.count)
+				let iv = self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = [iv]
 				for block in padded {
 					blocks.lastMut = try encryptor.encrypt(data: blocks.last!)
@@ -379,7 +398,7 @@ public class SymmetricEncryptor {
 						return partial + block
 					})
 			case .ofb:
-				var prev = self.iv ?? Array(repeating: 0, count: key.count)
+				var prev = self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = []
 				for block in padded {
 					prev = try encryptor.encrypt(data: prev)
@@ -394,7 +413,7 @@ public class SymmetricEncryptor {
 			case .ctr:
 				var tasks: [Task<Block, Error>] = []
 				var arr: [Byte] = []
-				let iv = self.iv ?? Array(repeating: 0, count: key.count)
+				let iv = self.iv ?? Array(repeating: 0, count: block_size)
 				for (i, block) in padded.enumerated() {
 					tasks.append(
 						Task {

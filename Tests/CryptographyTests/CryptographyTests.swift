@@ -141,7 +141,7 @@ struct TestDes {
 
 @Suite("Test deal")
 struct TestDeal {
-	@Test("Deal encryption", arguments: [16])
+	@Test("Deal encryption", arguments: [16, 24, 32])
 	func desTestComprehensive(size: Int) async throws {
 		let key = Array.random(size: size)
 		let cipher = try SymmetricEncryptor(
