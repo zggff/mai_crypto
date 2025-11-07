@@ -2,36 +2,36 @@ import Testing
 
 @testable import Des
 
-@Test("Test general") func testBitOperations() async throws {
-	var a: UInt8 = 0
-	a[1] = true
-	#expect(a == 2)
-	a[7] = true
-	#expect(a == 130)
-}
+@Suite("Test des")
+struct TestDes {
+	@Test("Test general") func testBitOperations() async throws {
+		var a: UInt8 = 0
+		a[1] = true
+		#expect(a == 2)
+		a[7] = true
+		#expect(a == 130)
+	}
 
-@Test("Adding Int to [UInt8]")
-func test_into_to_uint8_array_adding() {
-	for i in stride(from: 0, to: 2048, by: 10) {
-		for j in stride(from: 0, to: 2048, by: 10) {
-			var arr: [UInt8] = Array(repeating: 0, count: 4)
-			arr += i
-			arr += j
-			let b = arr.reduce(0) { soFar, byte in
-				return soFar << 8 | UInt32(byte)
-			}
-			#expect(i + j == b, "\(i) + \(j) = \(i + j), \(arr), \(b)")
-			guard i + j == b else {
-				return
+	@Test("Adding Int to [UInt8]")
+	func test_into_to_uint8_array_adding() {
+		for i in stride(from: 0, to: 2048, by: 10) {
+			for j in stride(from: 0, to: 2048, by: 10) {
+				var arr: [UInt8] = Array(repeating: 0, count: 4)
+				arr += i
+				arr += j
+				let b = arr.reduce(0) { soFar, byte in
+					return soFar << 8 | UInt32(byte)
+				}
+				#expect(i + j == b, "\(i) + \(j) = \(i + j), \(arr), \(b)")
+				guard i + j == b else {
+					return
+				}
 			}
 		}
 	}
-}
 
-@Suite("Test interfaces")
-struct Test12 {
 	@Test(
-		"1.2 padding", arguments: PaddingMode.allCases,
+		"test padding", arguments: PaddingMode.allCases,
 		["12345678", "Hello, World"])
 	func testPadding(padding: PaddingMode, key: String) async throws {
 
@@ -76,7 +76,7 @@ struct Test12 {
 	}
 
 	@Test(
-		"1.2 encryption", arguments: PaddingMode.allCases,
+		"test block modes", arguments: PaddingMode.allCases,
 		EncryptionMode.allCases
 	)
 	func testEncryption(padding: PaddingMode, mode: EncryptionMode) async throws {
@@ -100,10 +100,7 @@ struct Test12 {
 		}
 
 	}
-}
 
-@Suite("Test des and feistel")
-struct TestDes {
 	// https://emn178.github.io/online-tools/des/encrypt/
 	@Test("DES encryption as example")
 	func desTest() async throws {
@@ -118,7 +115,7 @@ struct TestDes {
 			encrypted.toHexString() == "b959cd9089fd2e4e59a8ce28b00a7320a8829ecfa5805c33",
 			"must be the same as in example")
 	}
-	@Test("DES encryption as example")
+	@Test("DES encryption")
 	func desTestComprehensive() async throws {
 		let key = Array("12345678".utf8)
 		let cipher = try SymmetricEncryptor(
@@ -138,10 +135,6 @@ struct TestDes {
 			}
 		}
 	}
-}
-
-@Suite("Test deal")
-struct TestDeal {
 	@Test("Deal encryption", arguments: [16, 24, 32])
 	func desTestComprehensive(size: Int) async throws {
 		let key = Array.random(size: size)
