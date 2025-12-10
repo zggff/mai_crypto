@@ -5,15 +5,22 @@ import PackageDescription
 
 let package = Package(
 	name: "Cryptography",
-    platforms: [.macOS(.v26)],
+	platforms: [.macOS(.v26)],
 	products: [
 		// Products define the executables and libraries a package produces, making them visible to other packages.
 		.library(
 			name: "Des",
 			targets: ["Des"]
 		),
+		.library(
+			name: "Rsa",
+			targets: ["Rsa"]
+		),
 		.executable(name: "Main", targets: ["Main"]),
 		.executable(name: "DesCmd", targets: ["DesCmd"]),
+	],
+	dependencies: [
+		.package(url: "https://github.com/attaswift/BigInt.git", from: "5.4.0")
 	],
 	targets: [
 		// Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -21,11 +28,15 @@ let package = Package(
 		.target(
 			name: "Des"
 		),
+		.target(
+			name: "Rsa",
+			dependencies: [.product(name: "BigInt", package: "BigInt")]
+		),
 		.executableTarget(
 			name: "Main",
-			dependencies: ["Des"],
+			dependencies: ["Des", "Rsa"],
 		),
-        .executableTarget(
+		.executableTarget(
 			name: "DesCmd",
 			dependencies: ["Des"],
 		),
@@ -33,6 +44,10 @@ let package = Package(
 		.testTarget(
 			name: "DesTests",
 			dependencies: ["Des"]
+		),
+		.testTarget(
+			name: "RsaTests",
+			dependencies: ["Rsa"]
 		),
 	]
 )
