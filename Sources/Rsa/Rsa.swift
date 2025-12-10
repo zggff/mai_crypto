@@ -1,26 +1,34 @@
 import BigInt
 import Foundation
 
-class RsaService {
-	enum TestType {
+public class RsaService {
+	public enum TestType: Sendable {
 		case fermat
 		case solovayStrassen
 		case millerRabin
 	}
 
-	struct KeyPair {
+	public struct PublicKey: Sendable {
 		let n: BigInt
 		let e: BigInt
+	}
+
+	public struct PrivateKey: Sendable {
 		let d: BigInt
 		let p: BigInt
 		let q: BigInt
 	}
 
-	class KeyGenerator {
+	public struct KeyPair: Sendable {
+		let pub: PublicKey
+		let pri: PrivateKey
+	}
+
+	public class KeyGenerator {
 		let testType: TestType
 		let minProbability: Double
-		let primeBitLength: Int 
-		let math = StatelessMathService.self
+		let primeBitLength: Int
+		let math = MathService.self
 
 		init(testType: TestType, minProbability: Double, primeBitLength: Int) {
 			precondition(minProbability >= 0.5 && minProbability < 1.0)
@@ -29,7 +37,7 @@ class RsaService {
 			self.primeBitLength = primeBitLength
 		}
 
-		func generateProbablePrime(randomGen: inout SystemRandomNumberGenerator) -> BigInt {
+		public func generateProbablePrime(randomGen: inout SystemRandomNumberGenerator) -> BigInt {
 			while true {
 				let candidate =
 					RsaService.KeyGenerator.randomBigInt(
@@ -40,7 +48,7 @@ class RsaService {
 			}
 		}
 
-		func isProbablePrime(_ n: BigInt) -> Bool {
+		public func isProbablePrime(_ n: BigInt) -> Bool {
 			let generator: (Int) -> BigInt = { bits in
 				var rng = SystemRandomNumberGenerator()
 				return KeyGenerator.randomBigInt(bitLength: bits, rand: &rng)
@@ -58,7 +66,12 @@ class RsaService {
 			}
 		}
 
-		func generateKeyPair(randomGen: inout SystemRandomNumberGenerator) -> KeyPair {
+		public func generateKeyPair() -> KeyPair {
+			var rng = SystemRandomNumberGenerator()
+			return generateKeyPair(randomGen: &rng)
+		}
+
+		public func generateKeyPair(randomGen: inout SystemRandomNumberGenerator) -> KeyPair {
 			while true {
 				let p = generateProbablePrime(randomGen: &randomGen)
 				var q: BigInt
@@ -100,7 +113,9 @@ class RsaService {
 					continue
 				}
 
-				return KeyPair(n: n, e: e!, d: d, p: p, q: q)
+				return KeyPair(
+					pub: PublicKey(n: n, e: e!),
+					pri: PrivateKey(d: d, p: p, q: q))
 			}
 		}
 
@@ -120,7 +135,7 @@ class RsaService {
 			value |= topBit
 			return value
 		}
-	}  
+	}
 
 	var keyPair: KeyPair?
 
@@ -132,12 +147,12 @@ class RsaService {
 
 	func encrypt(message: BigInt) -> BigInt {
 		guard let kp = keyPair else { fatalError("no key pair") }
-		return StatelessMathService.modPow(message, kp.e, kp.n)
+		return MathService.modPow(message, kp.pub.e, kp.pub.n)
 	}
 
 	func decrypt(cipher: BigInt) -> BigInt {
 		guard let kp = keyPair else { fatalError("no key pair") }
-		return StatelessMathService.modPow(cipher, kp.d, kp.n)
+		return MathService.modPow(cipher, kp.pri.d, kp.pub.n)
 	}
 
 	static func messageToBigInt(_ message: String) -> BigInt {

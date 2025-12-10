@@ -9,22 +9,22 @@ struct TestRSA {
 	func testMath() {
 		let a = BigInt(56)
 		let b = BigInt(98)
-		let g = StatelessMathService.gcd(a, b)
+		let g = MathService.gcd(a, b)
 		#expect(g == BigInt(14), "gcd(56,98) should be 14")
 
-		let (g2, x, y) = StatelessMathService.extendedGCD(a, b)
+		let (g2, x, y) = MathService.extendedGCD(a, b)
 		#expect(g2 == BigInt(14), "gcd should be 14")
 		#expect(a * x + b * y == g2, "Bezout identity must hold: a*x + b*y == gcd")
 
 		#expect(
-			StatelessMathService.modInverse(BigInt(3), BigInt(11)) == BigInt(4))
+			MathService.modInverse(BigInt(3), BigInt(11)) == BigInt(4))
 
-		#expect(StatelessMathService.modPow(BigInt(3), BigInt(4), BigInt(5)) == BigInt(1))
+		#expect(MathService.modPow(BigInt(3), BigInt(4), BigInt(5)) == BigInt(1))
 		#expect(
-			StatelessMathService.legendreSymbol(a: BigInt(2), p: BigInt(7))
+			MathService.legendreSymbol(a: BigInt(2), p: BigInt(7))
 				== 1)
 		#expect(
-			StatelessMathService.jacobiSymbol(a: BigInt(100), n: BigInt(21))
+			MathService.jacobiSymbol(a: BigInt(100), n: BigInt(21))
 				== 1)
 
 	}
@@ -53,8 +53,8 @@ struct TestRSA {
 		#expect(!ss.isProbablyPrime(15, randomBitGenerator: { _ in BigInt(3) }))
 	}
 
-    // RSAEncoder
-    // RsaEncoder <- this is better
+	// RSAEncoder
+	// RsaEncoder <- this is better
 	@Test("Rsa", arguments: [RsaService.TestType.millerRabin])
 	func testRsa(testType: RsaService.TestType) {
 		var rng = SystemRandomNumberGenerator()
@@ -64,14 +64,14 @@ struct TestRSA {
 
 		let kp = keyGen.generateKeyPair(randomGen: &rng)
 
-		#expect(kp.n == kp.p * kp.q)
+		#expect(kp.pub.n == kp.pri.p * kp.pri.q)
 
 		// gcd(e, phi) == 1
-		let phi = (kp.p - 1) * (kp.q - 1)
-		#expect(StatelessMathService.gcd(kp.e, phi) == BigInt(1))
+		let phi = (kp.pri.p - 1) * (kp.pri.q - 1)
+		#expect(MathService.gcd(kp.pub.e, phi) == BigInt(1))
 
-		if let inv = StatelessMathService.modInverse(kp.e, phi) {
-			#expect((inv % phi + phi) % phi == (kp.d % phi + phi) % phi)
+		if let inv = MathService.modInverse(kp.pub.e, phi) {
+			#expect((inv % phi + phi) % phi == (kp.pri.d % phi + phi) % phi)
 		} else {
 			#expect(Bool(false))
 		}
@@ -111,18 +111,49 @@ struct TestRSA {
 
 	@Test("RSA protection")
 	func testRSAProtection() {
-		var rng = SystemRandomNumberGenerator()
 		let bitLength = 256
 		let keyGen = RsaService.KeyGenerator(
 			testType: .millerRabin, minProbability: 0.99, primeBitLength: bitLength)
-		let kp = keyGen.generateKeyPair(randomGen: &rng)
+		let kp = keyGen.generateKeyPair()
 
-		let diff = abs(kp.p - kp.q)
+		let diff = abs(kp.pri.p - kp.pri.q)
 		let fermatThreshold = BigInt(1) << max(1, (bitLength / 2) - 16)
 		#expect(diff >= fermatThreshold, "abs(p - q) should be >= threshold")
 
-		let nBitWidth = kp.n.bitWidth
+		let nBitWidth = kp.pub.n.bitWidth
 		let dMin = BigInt(1) << max(1, nBitWidth / 4)
-		#expect(kp.d > dMin, "d must be larger than threshold")
+		#expect(kp.pri.d > dMin, "d must be larger than threshold")
 	}
+
+	@Test("Attack success")
+	func rsaAttackSuccess() throws {
+		let attack = RsaAttackService()
+
+		let p = BigInt(997)
+		let q = BigInt(1237)
+		let n = p * q
+		let phiN = (p - 1) * (q - 1)
+
+		let d = BigInt(17)
+		let e = MathService.modInverse(d, phiN)!
+
+		let result = attack.attack(key: RsaService.PublicKey(n: n, e: e))
+
+		#expect(result.d == d)
+		#expect(result.phi == phiN)
+		#expect(result.candidates.count > 0)
+	}
+
+	@Test("AttackFailWithGoodRsa")
+	func rsaAttackFailure() throws {
+		let attack = RsaAttackService()
+		let keyGen = RsaService.KeyGenerator(
+			testType: .millerRabin, minProbability: 0.99, primeBitLength: 128)
+		let key = keyGen.generateKeyPair().pub
+		let result = attack.attack(key: key)
+
+		#expect(result.d == nil)
+		#expect(result.phi == nil)
+	}
+
 }
