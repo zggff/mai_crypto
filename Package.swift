@@ -16,6 +16,10 @@ let package = Package(
 			name: "Rsa",
 			targets: ["Rsa"]
 		),
+		.library(
+			name: "Aes",
+			targets: ["Aes"]
+		),
 		.executable(name: "Main", targets: ["Main"]),
 		.executable(name: "DesCmd", targets: ["DesCmd"]),
 	],
@@ -30,6 +34,10 @@ let package = Package(
 		),
 		.target(
 			name: "Rsa",
+			dependencies: [.product(name: "BigInt", package: "BigInt")]
+		),
+		.target(
+			name: "Aes",
 			dependencies: [.product(name: "BigInt", package: "BigInt")]
 		),
 		.executableTarget(
@@ -48,6 +56,10 @@ let package = Package(
 		.testTarget(
 			name: "RsaTests",
 			dependencies: ["Rsa"]
+		),
+        .testTarget(
+			name: "AesTests",
+			dependencies: ["Aes"]
 		),
 	]
 )
