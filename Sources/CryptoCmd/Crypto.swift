@@ -1,3 +1,4 @@
+import Aes
 import Darwin
 import Foundation
 import Symmetric
@@ -12,6 +13,7 @@ struct RunError: Error {
 enum EncryptionType {
 	case Deal
 	case Des
+	case Aes1616
 }
 
 struct Params {
@@ -48,6 +50,7 @@ struct Main {
 					switch type {
 						case "deal": .Deal
 						case "des": .Des
+						case "aes": .Aes1616
 						default:
 							throw RunError(
 								"invalid type: \(type). Valid: [deal, des]")
@@ -96,7 +99,7 @@ struct Main {
 		return params
 	}
 	static func getEncryptor(params: Params) async throws -> SymmetricEncryptor {
-		let encryptor =
+		let encryptor: Encryptor =
 			switch params.type! {
 				case .Des:
 					try await Feistel(
@@ -104,6 +107,9 @@ struct Main {
 				case .Deal:
 					try await Feistel(
 						key: params.key!, expander: DealExpander(), transposer: DealTransposer())
+				case .Aes1616:
+					try await AesEncryptor(
+						key: params.key!, keySize: 16, blockSize: 16)
 
 			}
 		return try SymmetricEncryptor(

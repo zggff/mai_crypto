@@ -21,7 +21,7 @@ let package = Package(
 			targets: ["Aes"]
 		),
 		.executable(name: "Main", targets: ["Main"]),
-		.executable(name: "DesCmd", targets: ["DesCmd"]),
+		.executable(name: "CryptoCmd", targets: ["CryptoCmd"]),
 	],
 	dependencies: [
 		.package(url: "https://github.com/attaswift/BigInt.git", from: "5.4.0")
@@ -48,8 +48,8 @@ let package = Package(
 			dependencies: ["Symmetric", "Rsa", "Aes"],
 		),
 		.executableTarget(
-			name: "DesCmd",
-			dependencies: ["Symmetric"],
+			name: "CryptoCmd",
+			dependencies: ["Symmetric", "Aes"],
 		),
 
 		.testTarget(
