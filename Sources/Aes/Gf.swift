@@ -1,5 +1,4 @@
 import Symmetric
-import Foundation
 
 struct GF256 {
 	enum GF256Error: Error {

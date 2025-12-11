@@ -95,14 +95,14 @@ struct Main {
 
 		return params
 	}
-	static func getEncryptor(params: Params) throws -> SymmetricEncryptor {
+	static func getEncryptor(params: Params) async throws -> SymmetricEncryptor {
 		let encryptor =
 			switch params.type! {
 				case .Des:
-					try Feistel(
+					try await Feistel(
 						key: params.key!, expander: DesExpander(), transposer: DesTransposer())
 				case .Deal:
-					try Feistel(
+					try await Feistel(
 						key: params.key!, expander: DealExpander(), transposer: DealTransposer())
 
 			}
@@ -153,13 +153,13 @@ struct Main {
 
 	static func encrypt(args: [String]) async throws {
 		let params = try parseArgs(args: args)
-		let encryptor = try Self.getEncryptor(params: params)
+		let encryptor = try await Self.getEncryptor(params: params)
 		try await Self.doStuff(params: params, operation: encryptor.encrypt)
 	}
 
 	static func decrypt(args: [String]) async throws {
 		let params = try parseArgs(args: args)
-		let encryptor = try Self.getEncryptor(params: params)
+		let encryptor = try await Self.getEncryptor(params: params)
 		try await Self.doStuff(params: params, operation: encryptor.decrypt)
 	}
 

@@ -4,10 +4,10 @@ public final class Feistel: Encryptor {
 	let encrypt_keys: [Block]
 	let decrypt_keys: [Block]
 
-	public init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) throws {
+	public init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) async throws {
 		self.expander = expander
 		self.transposer = transposer
-        self.encrypt_keys = try expander.expandKey(key: key)
+        self.encrypt_keys = try await expander.expandKey(key: key)
 		self.decrypt_keys = encrypt_keys.reversed()
 
 	}
@@ -19,19 +19,19 @@ public final class Feistel: Encryptor {
         self.decrypt_keys = []
 	}
 
-    public func setKey(key: Block) throws -> Self {
-        return try Self(key: key, expander: self.expander, transposer: self.transposer)
+    public func setKey(key: Block) async throws -> Self {
+        return try await Self(key: key, expander: self.expander, transposer: self.transposer)
     }
 
-	public func encrypt(data: Block) throws -> Block {
-		return try self.transpose(data: data, keys: encrypt_keys, encrypt: true)
+	public func encrypt(data: Block) async throws -> Block {
+		return try await self.transpose(data: data, keys: encrypt_keys, encrypt: true)
 	}
 
-	public func decrypt(data: Block) throws -> Block {
-		return try self.transpose(data: data, keys: decrypt_keys, encrypt: false)
+	public func decrypt(data: Block) async throws -> Block {
+		return try await self.transpose(data: data, keys: decrypt_keys, encrypt: false)
 	}
 
-	func transpose(data: Block, keys: [Block], encrypt: Bool) throws -> Block {
+	func transpose(data: Block, keys: [Block], encrypt: Bool) async throws -> Block {
         guard keys.count > 0 else {
             throw EncryptionError.keyNotSet
         }
@@ -44,7 +44,7 @@ public final class Feistel: Encryptor {
 		var left = Array(data[..<middle])
 		var right = Array(data[middle...])
 		for key in keys {
-			var x = try transposer.transpose(data: right, key: key)
+			var x = try await transposer.transpose(data: right, key: key)
 			x ^= left
 			left = right
 			right = x

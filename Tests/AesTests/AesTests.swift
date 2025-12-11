@@ -14,4 +14,11 @@ final class AesTests {
             #expect(GF256.factorPolynomial(irr).count == 1)
         }
 	}
+	@Test
+    func testSbox() async throws {
+        let sbox = try SBox(mod: 283)
+        for val in await sbox.InvSBox {
+            print("\(String(val, radix: 16))")
+        }
+    }
 }

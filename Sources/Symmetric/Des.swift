@@ -168,7 +168,7 @@ public final class DesExpander: KeyExpander {
 		let last = (a & (0b11 << 26)) >> 26
 		return (a << 2) & ~(0b11 << 28) | last
 	}
-	public func expandKey(key: Block) throws -> [Block] {
+	public func expandKey(key: Block) async throws -> [Block] {
 		guard key.count == 8 else {
 			throw EncryptionError.keySize(key.count, "DES key must be 8 bytes")
 		}

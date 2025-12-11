@@ -106,7 +106,7 @@ struct TestDes {
 	func desTest() async throws {
 		let key = Array("12345678".utf8)
 		let text = Array("Lorem ipsum dolor".utf8)
-        let des = try Feistel(key: key, expander: DesExpander(), transposer: DesTransposer())
+        let des = try await Feistel(key: key, expander: DesExpander(), transposer: DesTransposer())
 		let encryptor = try SymmetricEncryptor(
 			encryptor: des,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
@@ -119,7 +119,7 @@ struct TestDes {
 	@Test("DES encryption")
 	func desTestComprehensive() async throws {
 		let key = Array("12345678".utf8)
-        let des = try Feistel(key: key, expander: DesExpander(), transposer: DesTransposer())
+        let des = try await Feistel(key: key, expander: DesExpander(), transposer: DesTransposer())
 		let cipher = try SymmetricEncryptor(
 			encryptor: des,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
@@ -140,7 +140,7 @@ struct TestDes {
 	@Test("Deal encryption", arguments: [16, 24, 32])
 	func dealTestComprehensive(size: Int) async throws {
 		let key = Array.random(size: size)
-        let deal = try Feistel(key: key, expander: DealExpander(), transposer: DealTransposer())
+        let deal = try await Feistel(key: key, expander: DealExpander(), transposer: DealTransposer())
 		let cipher = try SymmetricEncryptor(
 			encryptor: deal,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
