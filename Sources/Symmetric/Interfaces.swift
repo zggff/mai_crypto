@@ -42,7 +42,7 @@ extension EncryptTransposer {
 
 public protocol Encryptor: Sendable {
 	// init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) throws
-	func setKey(key: Block) -> Self
+	// func setKey(key: Block) -> Self
 	func encrypt(data: Block) async throws -> Block
 	func decrypt(data: Block) async throws -> Block
 	func blockSize() -> Int?
@@ -51,9 +51,6 @@ public protocol Encryptor: Sendable {
 
 extension Encryptor {
 	public static func BLOCK_SIZE() -> Int? { return nil }
-	public func setKey(key: Block) -> Self {
-        return self
-    }
 	public static func KEY_SIZES() -> [Int]? { return nil }
 	public func blockSize() -> Int? { return nil }
 	public func keySizes() -> [Int]? { return nil }
@@ -124,7 +121,8 @@ public class SymmetricEncryptor {
 		encryptor: Encryptor, key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
 		args: [EncryptionModeArg]
 	) throws {
-		self.encryptor = encryptor.setKey(key: key)
+		// self.encryptor = encryptor.setKey(key: key)
+        self.encryptor = encryptor
 		self.mode = mode
 		self.padding = padding
 		self.iv = iv

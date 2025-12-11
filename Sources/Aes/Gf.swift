@@ -63,6 +63,10 @@ struct GF256 {
 		return -1
 	}
 
+	public static func irreducible(_ a: Byte) -> Bool {
+		return irreducible(Int(a) | (1 << 8))
+	}
+
 	public static func irreducible(_ a: Int) -> Bool {
 		if a == 0 {
 			return false
@@ -89,7 +93,7 @@ struct GF256 {
 	public static func allIrreducible() -> [Int] {
 		var res: [Int] = []
 		for i in 0..<256 {
-            let p = i | (1 << 8)
+			let p = i | (1 << 8)
 			if irreducible(p) {
 				res.append(p)
 			}
@@ -113,6 +117,12 @@ struct GF256 {
 		}
 		return x
 	}
+
+    public static func factor8Polynomial(_ polynomial: Byte) -> [Int: Int] {
+        return factorPolynomial(Int(polynomial) | (1 << 8))
+
+    }
+
 
 	public static func factorPolynomial(_ polynomial: Int) -> [Int: Int] {
 		let n = degree(polynomial)

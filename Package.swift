@@ -45,7 +45,7 @@ let package = Package(
 		),
 		.executableTarget(
 			name: "Main",
-			dependencies: ["Symmetric", "Rsa"],
+			dependencies: ["Symmetric", "Rsa", "Aes"],
 		),
 		.executableTarget(
 			name: "DesCmd",
