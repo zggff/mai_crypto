@@ -1,12 +1,12 @@
 import BigInt
 import Foundation
 
-protocol ProbabilisticPrimeTest {
+protocol PrimeTest {
 	func singleIteration(n: BigInt, rand: () -> BigInt) -> Bool
 }
 
-class AbstractProbabilisticTest: ProbabilisticPrimeTest {
-	let math = MathService.self
+class AbstractPrimeTest: PrimeTest {
+	let math = RsaMath.self
 
 	let minProbability: Double
 
@@ -57,20 +57,20 @@ class AbstractProbabilisticTest: ProbabilisticPrimeTest {
 	}
 }
 
-class FermatTest: AbstractProbabilisticTest {
+class FermatTest: AbstractPrimeTest {
 	override func singleIteration(n: BigInt, rand: () -> BigInt) -> Bool {
 		let a = rand()
-		let res = MathService.modPow(a, n - 1, n)
+		let res = RsaMath.modPow(a, n - 1, n)
 		return res == 1
 	}
 	override func errorProbabilityPerIteration() -> Double { return 0.5 }
 }
 
-class SolovayStrassenTest: AbstractProbabilisticTest {
+class SolovayStrassenTest: AbstractPrimeTest {
 	override func singleIteration(n: BigInt, rand: () -> BigInt) -> Bool {
 		let a = rand()
-		let x = MathService.modPow(a, (n - 1) / 2, n)
-		let j = MathService.jacobiSymbol(a: a, n: n)
+		let x = RsaMath.modPow(a, (n - 1) / 2, n)
+		let j = RsaMath.jacobiSymbol(a: a, n: n)
 		var jMod = BigInt(0)
 		if j == -1 { jMod = n - 1 } else if j == 0 { jMod = 0 } else { jMod = 1 }
 		return x == jMod
@@ -78,7 +78,7 @@ class SolovayStrassenTest: AbstractProbabilisticTest {
 	override func errorProbabilityPerIteration() -> Double { return 0.5 }
 }
 
-class MillerRabinTest: AbstractProbabilisticTest {
+class MillerRabinTest: AbstractPrimeTest {
 	override func singleIteration(n: BigInt, rand: () -> BigInt) -> Bool {
 		let a = rand()
 		var d = n - 1
@@ -87,7 +87,7 @@ class MillerRabinTest: AbstractProbabilisticTest {
 			d >>= 1
 			s += 1
 		}
-		var x = MathService.modPow(a, d, n)
+		var x = RsaMath.modPow(a, d, n)
 		if x == 1 || x == n - 1 { return true }
 		for _ in 1..<s {
 			x = (x * x) % n

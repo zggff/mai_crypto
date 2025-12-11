@@ -9,22 +9,22 @@ struct TestRSA {
 	func testMath() {
 		let a = BigInt(56)
 		let b = BigInt(98)
-		let g = MathService.gcd(a, b)
+		let g = RsaMath.gcd(a, b)
 		#expect(g == BigInt(14), "gcd(56,98) should be 14")
 
-		let (g2, x, y) = MathService.extendedGCD(a, b)
+		let (g2, x, y) = RsaMath.extendedGCD(a, b)
 		#expect(g2 == BigInt(14), "gcd should be 14")
 		#expect(a * x + b * y == g2, "Bezout identity must hold: a*x + b*y == gcd")
 
 		#expect(
-			MathService.modInverse(BigInt(3), BigInt(11)) == BigInt(4))
+			RsaMath.modInverse(BigInt(3), BigInt(11)) == BigInt(4))
 
-		#expect(MathService.modPow(BigInt(3), BigInt(4), BigInt(5)) == BigInt(1))
+		#expect(RsaMath.modPow(BigInt(3), BigInt(4), BigInt(5)) == BigInt(1))
 		#expect(
-			MathService.legendreSymbol(a: BigInt(2), p: BigInt(7))
+			RsaMath.legendreSymbol(a: BigInt(2), p: BigInt(7))
 				== 1)
 		#expect(
-			MathService.jacobiSymbol(a: BigInt(100), n: BigInt(21))
+			RsaMath.jacobiSymbol(a: BigInt(100), n: BigInt(21))
 				== 1)
 
 	}
@@ -55,11 +55,11 @@ struct TestRSA {
 
 	// RSAEncoder
 	// RsaEncoder <- this is better
-	@Test("Rsa", arguments: [RsaService.TestType.millerRabin])
-	func testRsa(testType: RsaService.TestType) {
+	@Test("Rsa", arguments: [Rsa.TestType.millerRabin])
+	func testRsa(testType: Rsa.TestType) {
 		var rng = SystemRandomNumberGenerator()
 		let bitLength = 128
-		let keyGen = RsaService.KeyGenerator(
+		let keyGen = Rsa.KeyGenerator(
 			testType: .millerRabin, minProbability: 0.99, primeBitLength: bitLength)
 
 		let kp = keyGen.generateKeyPair(randomGen: &rng)
@@ -68,15 +68,15 @@ struct TestRSA {
 
 		// gcd(e, phi) == 1
 		let phi = (kp.pri.p - 1) * (kp.pri.q - 1)
-		#expect(MathService.gcd(kp.pub.e, phi) == BigInt(1))
+		#expect(RsaMath.gcd(kp.pub.e, phi) == BigInt(1))
 
-		if let inv = MathService.modInverse(kp.pub.e, phi) {
+		if let inv = RsaMath.modInverse(kp.pub.e, phi) {
 			#expect((inv % phi + phi) % phi == (kp.pri.d % phi + phi) % phi)
 		} else {
 			#expect(Bool(false))
 		}
 
-		let rsa = RsaService()
+		let rsa = Rsa()
 		rsa.setKeyPair(kp)
 
 		let messageInt = BigInt(42)
@@ -92,27 +92,27 @@ struct TestRSA {
 	func testRsaString() {
 		var rng = SystemRandomNumberGenerator()
 		let bitLength = 128
-		let keyGen = RsaService.KeyGenerator(
+		let keyGen = Rsa.KeyGenerator(
 			testType: .millerRabin, minProbability: 0.99, primeBitLength: bitLength)
 		let kp = keyGen.generateKeyPair(randomGen: &rng)
 
-		let rsa = RsaService()
+		let rsa = Rsa()
 		rsa.setKeyPair(kp)
 
 		let original = "this is a test message for rsa"
-		let mInt = RsaService.messageToBigInt(original)
+		let mInt = Rsa.messageToBigInt(original)
 
 		let cipher = rsa.encrypt(message: mInt)
 		let decrypted = rsa.decrypt(cipher: cipher)
 
-		let decoded = RsaService.bigIntToMessage(decrypted)
+		let decoded = Rsa.bigIntToMessage(decrypted)
 		#expect(decoded! == original)
 	}
 
 	@Test("RSA protection")
 	func testRSAProtection() {
 		let bitLength = 256
-		let keyGen = RsaService.KeyGenerator(
+		let keyGen = Rsa.KeyGenerator(
 			testType: .millerRabin, minProbability: 0.99, primeBitLength: bitLength)
 		let kp = keyGen.generateKeyPair()
 
@@ -127,7 +127,7 @@ struct TestRSA {
 
 	@Test("Attack success")
 	func rsaAttackSuccess() throws {
-		let attack = RsaAttackService()
+		let attack = RsaAttack()
 
 		let p = BigInt(997)
 		let q = BigInt(1237)
@@ -135,9 +135,9 @@ struct TestRSA {
 		let phiN = (p - 1) * (q - 1)
 
 		let d = BigInt(17)
-		let e = MathService.modInverse(d, phiN)!
+		let e = RsaMath.modInverse(d, phiN)!
 
-		let result = attack.attack(key: RsaService.PublicKey(n: n, e: e))
+		let result = attack.attack(key: Rsa.PublicKey(n: n, e: e))
 
 		#expect(result.d == d)
 		#expect(result.phi == phiN)
@@ -146,8 +146,8 @@ struct TestRSA {
 
 	@Test("AttackFailWithGoodRsa")
 	func rsaAttackFailure() throws {
-		let attack = RsaAttackService()
-		let keyGen = RsaService.KeyGenerator(
+		let attack = RsaAttack()
+		let keyGen = Rsa.KeyGenerator(
 			testType: .millerRabin, minProbability: 0.99, primeBitLength: 128)
 		let key = keyGen.generateKeyPair().pub
 		let result = attack.attack(key: key)

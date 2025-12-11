@@ -1,7 +1,7 @@
 import BigInt
 import Foundation
 
-public class RsaService {
+public class Rsa {
 	public enum TestType: Sendable {
 		case fermat
 		case solovayStrassen
@@ -28,7 +28,7 @@ public class RsaService {
 		let testType: TestType
 		let minProbability: Double
 		let primeBitLength: Int
-		let math = MathService.self
+		let math = RsaMath.self
 
 		init(testType: TestType, minProbability: Double, primeBitLength: Int) {
 			precondition(minProbability >= 0.5 && minProbability < 1.0)
@@ -40,7 +40,7 @@ public class RsaService {
 		public func generateProbablePrime(randomGen: inout SystemRandomNumberGenerator) -> BigInt {
 			while true {
 				let candidate =
-					RsaService.KeyGenerator.randomBigInt(
+					Rsa.KeyGenerator.randomBigInt(
 						bitLength: primeBitLength, rand: &randomGen) | 1
 				if isProbablePrime(candidate) {
 					return candidate
@@ -147,12 +147,12 @@ public class RsaService {
 
 	func encrypt(message: BigInt) -> BigInt {
 		guard let kp = keyPair else { fatalError("no key pair") }
-		return MathService.modPow(message, kp.pub.e, kp.pub.n)
+		return RsaMath.modPow(message, kp.pub.e, kp.pub.n)
 	}
 
 	func decrypt(cipher: BigInt) -> BigInt {
 		guard let kp = keyPair else { fatalError("no key pair") }
-		return MathService.modPow(cipher, kp.pri.d, kp.pub.n)
+		return RsaMath.modPow(cipher, kp.pri.d, kp.pub.n)
 	}
 
 	static func messageToBigInt(_ message: String) -> BigInt {

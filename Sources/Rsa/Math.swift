@@ -1,7 +1,7 @@
 import BigInt
 import Foundation
 
-public struct MathService {
+public struct RsaMath {
 	public static func gcd(_ a: BigInt, _ b: BigInt) -> BigInt {
 		var x = a.magnitude == 0 ? BigInt(0) : abs(a)
 		var y = b.magnitude == 0 ? BigInt(0) : abs(b)

@@ -1,7 +1,7 @@
 import BigInt
 import Foundation
 
-public struct RsaAttackService {
+public struct RsaAttack {
 	public struct RsaCandidate {
 		public let k: BigInt
 		public let d: BigInt  // k/d
@@ -17,7 +17,7 @@ public struct RsaAttackService {
 	}
 
 	public init() {}
-	public func attack(key: RsaService.PublicKey) -> RsaAttackResult {
+	public func attack(key: Rsa.PublicKey) -> RsaAttackResult {
 		let e = key.e
 		let n = key.n
 		let cf = continuedFraction(numerator: e, denominator: n)
