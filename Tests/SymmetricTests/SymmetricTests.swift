@@ -1,6 +1,6 @@
 import Testing
 
-@testable import Des
+@testable import Symmetric
 
 @Suite("Test des")
 struct TestDes {

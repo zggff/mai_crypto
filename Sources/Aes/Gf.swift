@@ -1,5 +1,4 @@
-import BigInt
-import Des
+import Symmetric
 import Foundation
 
 struct GF256 {

@@ -1,5 +1,5 @@
 import Darwin
-import Des
+import Symmetric
 import Foundation
 
 struct RunError: Error {
@@ -15,8 +15,8 @@ enum EncryptionType {
 }
 
 struct Params {
-	var padding: Des.PaddingMode?
-	var mode: Des.EncryptionMode?
+	var padding: PaddingMode?
+	var mode: EncryptionMode?
 	var type: EncryptionType?
 	var key: Block?
 	var iv: Block?
@@ -95,15 +95,15 @@ struct Main {
 
 		return params
 	}
-	static func getEncryptor(params: Params) throws -> Des.SymmetricEncryptor {
+	static func getEncryptor(params: Params) throws -> SymmetricEncryptor {
 		return switch params.type! {
 			case .Des:
-				try Des.SymmetricEncryptor(
+				try SymmetricEncryptor(
 					type: DesEncryptor.self,
 					key: params.key!, mode: params.mode!, padding: params.padding!, iv: params.iv,
 					args: [])
 			case .Deal:
-				try Des.SymmetricEncryptor(
+				try SymmetricEncryptor(
 					type: DealEncryptor.self,
 					key: params.key!, mode: params.mode!, padding: params.padding!, iv: params.iv,
 					args: [])

@@ -1,4 +1,4 @@
-import Des
+import Symmetric
 
 @main
 struct Main {

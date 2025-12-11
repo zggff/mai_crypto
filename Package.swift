@@ -9,8 +9,8 @@ let package = Package(
 	products: [
 		// Products define the executables and libraries a package produces, making them visible to other packages.
 		.library(
-			name: "Des",
-			targets: ["Des"]
+			name: "Symmetric",
+			targets: ["Symmetric"]
 		),
 		.library(
 			name: "Rsa",
@@ -30,7 +30,7 @@ let package = Package(
 		// Targets are the basic building blocks of a package, defining a module or a test suite.
 		// Targets can depend on other targets in this package and products from dependencies.
 		.target(
-			name: "Des"
+			name: "Symmetric"
 		),
 		.target(
 			name: "Rsa",
@@ -38,26 +38,29 @@ let package = Package(
 		),
 		.target(
 			name: "Aes",
-			dependencies: [.product(name: "BigInt", package: "BigInt")]
+			dependencies: [
+				.product(name: "BigInt", package: "BigInt"),
+				"Symmetric",
+			]
 		),
 		.executableTarget(
 			name: "Main",
-			dependencies: ["Des", "Rsa"],
+			dependencies: ["Symmetric", "Rsa"],
 		),
 		.executableTarget(
 			name: "DesCmd",
-			dependencies: ["Des"],
+			dependencies: ["Symmetric"],
 		),
 
 		.testTarget(
-			name: "DesTests",
-			dependencies: ["Des"]
+			name: "SymmetricTests",
+			dependencies: ["Symmetric"]
 		),
 		.testTarget(
 			name: "RsaTests",
 			dependencies: ["Rsa"]
 		),
-        .testTarget(
+		.testTarget(
 			name: "AesTests",
 			dependencies: ["Aes"]
 		),
