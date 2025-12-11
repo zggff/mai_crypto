@@ -42,18 +42,16 @@ extension EncryptTransposer {
 
 public protocol Encryptor: Sendable {
 	// init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) throws
-	// func setKey(key: Block) -> Self
+    func setKey(key: Block) async throws
 	func encrypt(data: Block) async throws -> Block
 	func decrypt(data: Block) async throws -> Block
-	func blockSize() -> Int?
-	func keySizes() -> [Int]?
+	func blockSize() async -> Int?
+	func keySizes() async -> [Int]?
 }
 
 extension Encryptor {
-	public static func BLOCK_SIZE() -> Int? { return nil }
-	public static func KEY_SIZES() -> [Int]? { return nil }
-	public func blockSize() -> Int? { return nil }
-	public func keySizes() -> [Int]? { return nil }
+	public func blockSize() async -> Int? { return nil }
+	public func keySizes() async -> [Int]? { return nil }
 
 }
 
@@ -120,19 +118,19 @@ public class SymmetricEncryptor {
 	public init(
 		encryptor: Encryptor, key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
 		args: [EncryptionModeArg]
-	) throws {
-		// self.encryptor = encryptor.setKey(key: key)
+	) async throws {
         self.encryptor = encryptor
+        try await self.encryptor.setKey(key: key)
 		self.mode = mode
 		self.padding = padding
 		self.iv = iv
 		self.args = args
-		if let key_sizes = encryptor.keySizes() {
+		if let key_sizes = await encryptor.keySizes() {
 			if !key_sizes.contains(key.count) {
 				throw EncryptionError.keySize(key.count, "key size must be one of \(key_sizes)")
 			}
 		}
-		self.block_size = self.encryptor.blockSize() ?? key.count
+		self.block_size = await self.encryptor.blockSize() ?? key.count
 		if let iv = iv {
 			if iv.count != self.block_size {
 				throw EncryptionError.iv

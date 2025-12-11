@@ -102,17 +102,17 @@ struct Main {
 		let encryptor: Encryptor =
 			switch params.type! {
 				case .Des:
-					try await Feistel(
-						key: params.key!, expander: DesExpander(), transposer: DesTransposer())
+					try Feistel(
+						expander: DesExpander(), transposer: DesTransposer())
 				case .Deal:
-					try await Feistel(
-						key: params.key!, expander: DealExpander(), transposer: DealTransposer())
+					try Feistel(
+						expander: DealExpander(), transposer: DealTransposer())
 				case .Aes1616:
 					try await AesEncryptor(
-						key: params.key!, keySize: 16, blockSize: 16)
+						keySize: 16, blockSize: 16)
 
 			}
-		return try SymmetricEncryptor(
+		return try await SymmetricEncryptor(
 			encryptor: encryptor,
 			key: params.key!, mode: params.mode!, padding: params.padding!, iv: params.iv,
 			args: [])

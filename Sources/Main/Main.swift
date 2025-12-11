@@ -5,8 +5,8 @@ import Aes
 struct Main {
 	static func main() async throws {
 		let key = Array("1234567887654321".utf8)
-		let aes = try await AesEncryptor(key: key, keySize: 16, blockSize: 16, irreducible: 283)
-		let cipher = try SymmetricEncryptor(
+		let aes = try await AesEncryptor(keySize: 16, blockSize: 16, irreducible: 283)
+		let cipher = try await SymmetricEncryptor(
 			encryptor: aes,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
 			args: [])

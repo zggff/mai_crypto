@@ -4,7 +4,8 @@ public final class DealTransposer: EncryptTransposer {
 	public func blockSize() -> Int? { return Self.BLOCK_SIZE() }
 
 	public func transpose(data: Block, key: Block) async throws -> Block {
-		let des = try await Feistel(key: key, expander: DesExpander(), transposer: DesTransposer())
+		let des = try Feistel(expander: DesExpander(), transposer: DesTransposer())
+        try await des.setKey(key: key)
 		return try await des.encrypt(data: data)
 	}
 	public func preProcess(data: Block, encrypt: Bool = true) throws -> Block {
@@ -47,7 +48,8 @@ public final class DealExpander: KeyExpander {
 				case 32: 8
 				default: 6
 			}
-		let des = try await Feistel(key: Self.DealKeyInit, expander: DesExpander(), transposer: DesTransposer())
+		let des = try  Feistel( expander: DesExpander(), transposer: DesTransposer())
+        try await des.setKey(key: Self.DealKeyInit)
 		var keys: [Block] = []
 		await keys.append(try des.encrypt(data: keys_des[0]))
 		for k in keys_des[1...] {

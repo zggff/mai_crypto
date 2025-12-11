@@ -1,26 +1,17 @@
-public final class Feistel: Encryptor {
+public actor Feistel: Encryptor {
 	let expander: KeyExpander
 	let transposer: EncryptTransposer
-	let encrypt_keys: [Block]
-	let decrypt_keys: [Block]
-
-	public init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) async throws {
-		self.expander = expander
-		self.transposer = transposer
-        self.encrypt_keys = try await expander.expandKey(key: key)
-		self.decrypt_keys = encrypt_keys.reversed()
-
-	}
+	var encrypt_keys: [Block]?
+	var decrypt_keys: [Block]?
 
     public init(expander: KeyExpander, transposer: EncryptTransposer) throws {
 		self.expander = expander
 		self.transposer = transposer
-        self.encrypt_keys = []
-        self.decrypt_keys = []
 	}
 
-    public func setKey(key: Block) async throws -> Self {
-        return try await Self(key: key, expander: self.expander, transposer: self.transposer)
+    public func setKey(key: Block) async throws {
+        self.encrypt_keys = try await expander.expandKey(key: key)
+		self.decrypt_keys = encrypt_keys!.reversed()
     }
 
 	public func encrypt(data: Block) async throws -> Block {
@@ -31,8 +22,8 @@ public final class Feistel: Encryptor {
 		return try await self.transpose(data: data, keys: decrypt_keys, encrypt: false)
 	}
 
-	func transpose(data: Block, keys: [Block], encrypt: Bool) async throws -> Block {
-        guard keys.count > 0 else {
+	func transpose(data: Block, keys: [Block]?, encrypt: Bool) async throws -> Block {
+        guard let keys = keys else {
             throw EncryptionError.keyNotSet
         }
 		guard data.count % 2 == 0 else {
@@ -52,6 +43,6 @@ public final class Feistel: Encryptor {
 		return try transposer.postProcess(data: right + left, encrypt: encrypt)
 	}
 
-    public func blockSize() -> Int? {return self.transposer.blockSize()}
-    public func keySizes() -> [Int]? {return self.expander.keySizes()}
+    public func blockSize() async -> Int? {return self.transposer.blockSize()}
+    public func keySizes() async -> [Int]? {return self.expander.keySizes()}
 }

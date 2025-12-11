@@ -19,8 +19,8 @@ final class AesTests {
 	@Test("AES encryption with example")
 	func aesTestComprehensive() async throws {
 		let key = Array("1234567887654321".utf8)
-		let aes = try await AesEncryptor(key: key, keySize: 16, blockSize: 16, irreducible: 283)
-		let cipher = try SymmetricEncryptor(
+		let aes = try await AesEncryptor(keySize: 16, blockSize: 16, irreducible: 283)
+		let cipher = try await SymmetricEncryptor(
 			encryptor: aes,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
 			args: [])
@@ -33,8 +33,8 @@ final class AesTests {
     @Test("Aes encryption", arguments: [16, 24, 32], [16, 24, 32])
 	func aesTestComprehensive(key_size: Int, block_size: Int) async throws {
 		let key = Array.random(size: key_size)
-		let aes = try await AesEncryptor(key: key, keySize: key_size, blockSize: block_size, irreducible: 283)
-		let cipher = try SymmetricEncryptor(
+		let aes = try await AesEncryptor(keySize: key_size, blockSize: block_size, irreducible: 283)
+		let cipher = try await SymmetricEncryptor(
 			encryptor: aes,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
 			args: [])

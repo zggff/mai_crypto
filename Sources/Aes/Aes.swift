@@ -115,41 +115,52 @@ final class AesExpander {
 	}
 }
 
-public struct AesEncryptor: Encryptor {
+public actor AesEncryptor: Encryptor {
 	typealias State = [[Byte]]
 	let block_size: Int
 	let key_size: Int
 	let sbox: SBox
-	let expandedKey: [Word]
+	var expandedKey: [Word]?
 	let rounds: Int
 	let nb: Int
+	let mod: Int
 
-    public func blockSize() -> Int? {
-        return block_size
-    }
+	public func blockSize() async -> Int? {
+		return block_size
+	}
+	public func keySizes() async -> [Int]? {
+		return [16, 24, 32]
+	}
 
-	public init(key: Block, keySize: Int, blockSize: Int, irreducible: Int = 283) async throws {
+	public func setKey(key: Block) async throws {
+		guard key.count == key_size else {
+			throw EncryptionError.keySize(key_size, nil)
+		}
+		let expander = try AesExpander(
+			mod: mod, keySize: key_size, blockSize: block_size, rounds: rounds)
+		self.expandedKey = try await expander.expandKey(key: key)
+
+	}
+
+	public init(keySize: Int, blockSize: Int, irreducible: Int = 283) async throws {
 		guard keySize == 16 || keySize == 24 || keySize == 32 else {
 			throw EncryptionError.keySize(keySize, nil)
 		}
 		guard blockSize == 16 || blockSize == 24 || blockSize == 32 else {
 			throw EncryptionError.blockSize(keySize, nil)
 		}
-		guard key.count == keySize else {
-			throw EncryptionError.keySize(keySize, nil)
-		}
-
 		self.rounds = Self.numberOfRounds(keySize: keySize, blockSize: blockSize)
-		let expander = try AesExpander(
-			mod: irreducible, keySize: keySize, blockSize: blockSize, rounds: rounds)
-		self.expandedKey = try await expander.expandKey(key: key)
 		self.block_size = blockSize
 		self.key_size = keySize
 		self.sbox = try SBox(mod: irreducible)
 		self.nb = blockSize / 4
-
+		self.mod = irreducible
 	}
 	public func encrypt(data: Symmetric.Block) async throws -> Symmetric.Block {
+		guard expandedKey != nil else {
+			throw EncryptionError.keyNotSet
+		}
+
 		var state = toStateMatrix(data)
 
 		addRoundKey(&state, 0)
@@ -169,6 +180,9 @@ public struct AesEncryptor: Encryptor {
 	}
 
 	public func decrypt(data: Symmetric.Block) async throws -> Symmetric.Block {
+		guard expandedKey != nil else {
+			throw EncryptionError.keyNotSet
+		}
 		var state = toStateMatrix(data)
 
 		addRoundKey(&state, rounds)
@@ -209,18 +223,18 @@ public struct AesEncryptor: Encryptor {
 	}
 
 	private static func numberOfRounds(keySize: Int, blockSize: Int) -> Int {
-        if keySize == 16 && blockSize == 16 {
-            return 10
-        }
-        if keySize == 32 && blockSize == 32 {
-            return 14
-        }
-        return 12
+		if keySize == 16 && blockSize == 16 {
+			return 10
+		}
+		if keySize == 32 && blockSize == 32 {
+			return 14
+		}
+		return 12
 	}
 
 	private func addRoundKey(_ state: inout State, _ round: Int) {
 		for col in 0..<nb {
-			let word = expandedKey[round * nb + col]
+			let word = expandedKey![round * nb + col]
 			for row in 0..<4 {
 				let keyByte = Byte((word >> (24 - 8 * row)) & 0xFF)
 				state[row][col] ^= keyByte
