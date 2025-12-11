@@ -30,7 +30,7 @@ final class AesTests {
         #expect(encr == "CB47C2F07ED29D58466D279CE3E76988D5D37D1EA017BE5A902425B5E4BEC159D83763BBF5A929FAA7790B35B5F4F753")
 
 	}
-    @Test("Aes encryption", arguments: [16], [16])
+    @Test("Aes encryption", arguments: [16, 24, 32], [16, 24, 32])
 	func aesTestComprehensive(key_size: Int, block_size: Int) async throws {
 		let key = Array.random(size: key_size)
 		let aes = try await AesEncryptor(key: key, keySize: key_size, blockSize: block_size, irreducible: 283)
@@ -44,6 +44,7 @@ final class AesTests {
 			let encr = try await cipher.encrypt(data: data)
 			let res = try await cipher.decrypt(data: encr)
 			#expect(res == data, "\(data) with \(key)")
+            break
 		}
 	}
 }

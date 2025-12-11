@@ -50,7 +50,7 @@ actor SBox: Sendable {
 	}
 }
 
-public final class AesExpander {
+final class AesExpander {
 	let sBox: SBox
 	static let rcon: [Byte] = [
 		0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
@@ -116,21 +116,35 @@ public final class AesExpander {
 }
 
 public struct AesEncryptor: Encryptor {
-	public typealias State = [[Byte]]
-	let blockSize: Int
-	let keySize: Int
+	typealias State = [[Byte]]
+	let block_size: Int
+	let key_size: Int
 	let sbox: SBox
 	let expandedKey: [Word]
 	let rounds: Int
 	let nb: Int
 
+    public func blockSize() -> Int? {
+        return block_size
+    }
+
 	public init(key: Block, keySize: Int, blockSize: Int, irreducible: Int = 283) async throws {
+		guard keySize == 16 || keySize == 24 || keySize == 32 else {
+			throw EncryptionError.keySize(keySize, nil)
+		}
+		guard blockSize == 16 || blockSize == 24 || blockSize == 32 else {
+			throw EncryptionError.blockSize(keySize, nil)
+		}
+		guard key.count == keySize else {
+			throw EncryptionError.keySize(keySize, nil)
+		}
+
 		self.rounds = Self.numberOfRounds(keySize: keySize, blockSize: blockSize)
 		let expander = try AesExpander(
 			mod: irreducible, keySize: keySize, blockSize: blockSize, rounds: rounds)
 		self.expandedKey = try await expander.expandKey(key: key)
-		self.blockSize = blockSize
-		self.keySize = keySize
+		self.block_size = blockSize
+		self.key_size = keySize
 		self.sbox = try SBox(mod: irreducible)
 		self.nb = blockSize / 4
 
@@ -174,7 +188,7 @@ public struct AesEncryptor: Encryptor {
 
 	}
 
-	public func toStateMatrix(_ block: Block) -> State {
+	private func toStateMatrix(_ block: Block) -> State {
 		var state = Array(repeating: Array(repeating: Byte(0), count: nb), count: 4)
 		for row in 0..<4 {
 			for col in 0..<nb {
@@ -184,8 +198,8 @@ public struct AesEncryptor: Encryptor {
 		return state
 	}
 
-	public func fromStateMatrix(_ state: State) -> Block {
-		var bytes = Block(repeating: 0, count: blockSize)
+	private func fromStateMatrix(_ state: State) -> Block {
+		var bytes = Block(repeating: 0, count: block_size)
 		for row in 0..<4 {
 			for col in 0..<nb {
 				bytes[row + 4 * col] = state[row][col]
@@ -195,19 +209,13 @@ public struct AesEncryptor: Encryptor {
 	}
 
 	private static func numberOfRounds(keySize: Int, blockSize: Int) -> Int {
-		let nk = keySize / 4
-		let nb = blockSize / 4
-
-		if nk <= 6 && nb <= 6 {
-			if nk > 4 || nb > 4 {
-				return 12
-			}
-			return 10
-		}
-		if nk <= 8 && nb <= 8 {
-			return 14
-		}
-		return 0
+        if keySize == 16 && blockSize == 16 {
+            return 10
+        }
+        if keySize == 32 && blockSize == 32 {
+            return 14
+        }
+        return 12
 	}
 
 	private func addRoundKey(_ state: inout State, _ round: Int) {
@@ -302,7 +310,7 @@ public struct AesEncryptor: Encryptor {
 	}
 
 	private func invMixColumns(_ state: inout State) {
-		let nb = blockSize / 4
+		let nb = block_size / 4
 		var tempCol: [Byte] = [0, 0, 0, 0]
 
 		for c in 0..<nb {
