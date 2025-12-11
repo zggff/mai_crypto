@@ -1,5 +1,5 @@
-import Des
 import Darwin
+import Des
 import Foundation
 
 struct RunError: Error {
@@ -125,7 +125,9 @@ struct Main {
 		print("\t-t=<type>:\tsets encryption mode")
 	}
 
-	static func doStuff(params: Params, operation: ([Byte]) async throws -> [Byte]) async throws {
+	static func doStuff(params: Params, operation: ([Byte]) async throws -> [Byte])
+		async throws
+	{
 		guard let input = FileHandle(forReadingAtPath: params.path_in!) else {
 			throw RunError("failed to open path: '\(params.path_in!)'")
 		}
@@ -138,12 +140,12 @@ struct Main {
 			output.closeFile()
 		}
 
-        let data = try input.readToEnd()
-        guard data != nil else {
-            throw RunError("failed to read")
-        }
-        let encrypted = try await operation(Array(data!))
-        try output.write(contentsOf: encrypted)
+		let data = try input.readToEnd()
+		guard data != nil else {
+			throw RunError("failed to read")
+		}
+		let encrypted = try await operation(Array(data!))
+		try output.write(contentsOf: encrypted)
 
 	}
 
