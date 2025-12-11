@@ -1,25 +1,25 @@
-public typealias DealEncryptor = Feistel<DealExpander, DealTransposer>
-
 public final class DealTransposer: EncryptTransposer {
 	public init() {}
 	public static func BLOCK_SIZE() -> Int? { return 16 }
+	public func blockSize() -> Int? { return Self.BLOCK_SIZE() }
+
 	public func transpose(data: Block, key: Block) throws -> Block {
-		let des = try DesEncryptor(key: key)
+		let des = try Feistel(key: key, expander: DesExpander(), transposer: DesTransposer())
 		return try des.encrypt(data: data)
 	}
 	public func preProcess(data: Block, encrypt: Bool = true) throws -> Block {
-        if encrypt {
-            return data
-        }
+		if encrypt {
+			return data
+		}
 		let middle = data.count / 2
 		let left = Array(data[..<middle])
 		let right = Array(data[middle...])
 		return right + left
 	}
 	public func postProcess(data: Block, encrypt: Bool = true) throws -> Block {
-        guard encrypt else {
-            return data
-        }
+		guard encrypt else {
+			return data
+		}
 		let middle = data.count / 2
 		let left = Array(data[..<middle])
 		let right = Array(data[middle...])
@@ -30,6 +30,9 @@ public final class DealTransposer: EncryptTransposer {
 public final class DealExpander: KeyExpander {
 	public static let DealKeyInit: Block = [0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF]
 	public static func KEY_SIZES() -> [Int]? { return [16, 24, 32] }
+	public func keySizes() -> [Int]? {
+		return Self.KEY_SIZES()
+	}
 	public init() {}
 	public func expandKey(key: Block) throws -> [Block] {
 		guard key.count == 16 || key.count == 24 || key.count == 32 else {
@@ -44,7 +47,7 @@ public final class DealExpander: KeyExpander {
 				case 32: 8
 				default: 6
 			}
-		let des = try DesEncryptor(key: Self.DealKeyInit)
+		let des = try Feistel(key: Self.DealKeyInit, expander: DesExpander(), transposer: DesTransposer())
 		var keys: [Block] = []
 		keys.append(try des.encrypt(data: keys_des[0]))
 		for k in keys_des[1...] {

@@ -40,7 +40,7 @@ struct TestDes {
 		}
 
 		let cipher = try SymmetricEncryptor(
-			type: AddEncryptor.self,
+			encryptor: AddEncryptor(key: Array(key.utf8)),
 			key: Array(key.utf8), mode: EncryptionMode.ecb, padding: padding, iv: nil, args: [])
 		for n in (1...32) {
 			let str: String = (1...n).reduce(
@@ -84,7 +84,7 @@ struct TestDes {
 		let iv = "abcdefgh"
 		for n in (1...32) {
 			let cipher = try SymmetricEncryptor(
-				type: AddEncryptor.self,
+				encryptor: AddEncryptor(key: Array(key.utf8)),
 				key: Array(key.utf8), mode: mode, padding: padding, iv: Array(iv.utf8), args: []
 			)
 			let str: String = (1...n).reduce(
@@ -106,8 +106,9 @@ struct TestDes {
 	func desTest() async throws {
 		let key = Array("12345678".utf8)
 		let text = Array("Lorem ipsum dolor".utf8)
+        let des = try Feistel(key: key, expander: DesExpander(), transposer: DesTransposer())
 		let encryptor = try SymmetricEncryptor(
-			type: DesEncryptor.self,
+			encryptor: des,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
 			args: [])
 		let encrypted = try await encryptor.encrypt(data: text)
@@ -118,8 +119,9 @@ struct TestDes {
 	@Test("DES encryption")
 	func desTestComprehensive() async throws {
 		let key = Array("12345678".utf8)
+        let des = try Feistel(key: key, expander: DesExpander(), transposer: DesTransposer())
 		let cipher = try SymmetricEncryptor(
-			type: DesEncryptor.self,
+			encryptor: des,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
 			args: [])
 		for n in (1...32) {
@@ -136,10 +138,11 @@ struct TestDes {
 		}
 	}
 	@Test("Deal encryption", arguments: [16, 24, 32])
-	func desTestComprehensive(size: Int) async throws {
+	func dealTestComprehensive(size: Int) async throws {
 		let key = Array.random(size: size)
+        let deal = try Feistel(key: key, expander: DealExpander(), transposer: DealTransposer())
 		let cipher = try SymmetricEncryptor(
-			type: DealEncryptor.self,
+			encryptor: deal,
 			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
 			args: [])
 		for n in (1...10) {

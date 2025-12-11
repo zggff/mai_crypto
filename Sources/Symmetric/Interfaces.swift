@@ -14,10 +14,12 @@ public protocol KeyExpander: Sendable {
 	init()
 	func expandKey(key: Block) throws -> [Block]
 	static func KEY_SIZES() -> [Int]?
+    func keySizes() -> [Int]?
 }
 
 extension KeyExpander {
 	public static func KEY_SIZES() -> [Int]? { return nil }
+	public func keySizes() -> [Int]? { return nil }
 }
 
 public protocol EncryptTransposer: Sendable {
@@ -26,10 +28,13 @@ public protocol EncryptTransposer: Sendable {
 	func preProcess(data: Block, encrypt: Bool) throws -> Block
 	func postProcess(data: Block, encrypt: Bool) throws -> Block
 	static func BLOCK_SIZE() -> Int?
+    func blockSize() -> Int?
+
 }
 
 extension EncryptTransposer {
 	public static func BLOCK_SIZE() -> Int? { return nil }
+	public func blockSize() -> Int? { return nil }
 }
 
 extension EncryptTransposer {
@@ -38,16 +43,19 @@ extension EncryptTransposer {
 }
 
 public protocol Encryptor: Sendable {
-	init(key: Block) throws
+	// init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) throws
 	func encrypt(data: Block) throws -> Block
 	func decrypt(data: Block) throws -> Block
-	static func BLOCK_SIZE() -> Int?
-	static func KEY_SIZES() -> [Int]?
+	func blockSize() -> Int?
+	func keySizes() -> [Int]?
 }
 
 extension Encryptor {
 	public static func BLOCK_SIZE() -> Int? { return nil }
 	public static func KEY_SIZES() -> [Int]? { return nil }
+    public func blockSize() -> Int? { return nil }
+	public func keySizes() -> [Int]? { return nil }
+
 }
 
 public enum EncryptionMode: CaseIterable & Sendable {
@@ -110,20 +118,20 @@ public class SymmetricEncryptor {
 	let encryptor: any Encryptor
 
 	public init(
-		type: Encryptor.Type, key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
+		encryptor: Encryptor, key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
 		args: [EncryptionModeArg]
 	) throws {
-		self.block_size = type.BLOCK_SIZE() ?? key.count
+        self.encryptor = encryptor
 		self.mode = mode
 		self.padding = padding
 		self.iv = iv
 		self.args = args
-		if let key_sizes = type.KEY_SIZES() {
+		if let key_sizes = encryptor.keySizes() {
 			if !key_sizes.contains(key.count) {
 				throw EncryptionError.keySize(key.count, "key size must be one of \(key_sizes)")
 			}
-
 		}
+		self.block_size = self.encryptor.blockSize() ?? key.count
 		if let iv = iv {
 			if iv.count != self.block_size {
 				throw EncryptionError.iv
@@ -133,7 +141,6 @@ public class SymmetricEncryptor {
 			throw EncryptionError.blockSize(key.count, "ansiX923 block must be <= 8 bytes")
 		}
 
-		self.encryptor = try type.init(key: key)
 	}
 
 	func padData(data: [Byte]) -> [Block] {

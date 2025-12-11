@@ -1,6 +1,6 @@
 import Darwin
-import Symmetric
 import Foundation
+import Symmetric
 
 struct RunError: Error {
 	let msg: String
@@ -96,18 +96,20 @@ struct Main {
 		return params
 	}
 	static func getEncryptor(params: Params) throws -> SymmetricEncryptor {
-		return switch params.type! {
-			case .Des:
-				try SymmetricEncryptor(
-					type: DesEncryptor.self,
-					key: params.key!, mode: params.mode!, padding: params.padding!, iv: params.iv,
-					args: [])
-			case .Deal:
-				try SymmetricEncryptor(
-					type: DealEncryptor.self,
-					key: params.key!, mode: params.mode!, padding: params.padding!, iv: params.iv,
-					args: [])
-		}
+		let encryptor =
+			switch params.type! {
+				case .Des:
+					try Feistel(
+						key: params.key!, expander: DesExpander(), transposer: DesTransposer())
+				case .Deal:
+					try Feistel(
+						key: params.key!, expander: DealExpander(), transposer: DealTransposer())
+
+			}
+		return try SymmetricEncryptor(
+			encryptor: encryptor,
+			key: params.key!, mode: params.mode!, padding: params.padding!, iv: params.iv,
+			args: [])
 	}
 	static func help(args: [String]) async throws {
 		let path = args[0]

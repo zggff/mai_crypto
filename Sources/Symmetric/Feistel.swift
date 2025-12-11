@@ -1,12 +1,12 @@
-public final class Feistel<K: KeyExpander, T: EncryptTransposer>: Encryptor {
+public final class Feistel: Encryptor {
 	let expander: KeyExpander
 	let transposer: EncryptTransposer
 	let encrypt_keys: [Block]
 	let decrypt_keys: [Block]
 
-	public init(key: Block) throws {
-		self.expander = K()
-		self.transposer = T()
+	public init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) throws {
+		self.expander = expander
+		self.transposer = transposer
 		self.encrypt_keys = try expander.expandKey(key: key)
 		self.decrypt_keys = encrypt_keys.reversed()
 	}
@@ -37,6 +37,6 @@ public final class Feistel<K: KeyExpander, T: EncryptTransposer>: Encryptor {
 		return try transposer.postProcess(data: right + left, encrypt: encrypt)
 	}
 
-    public static func BLOCK_SIZE() -> Int? {return T.BLOCK_SIZE()}
-    public static func KEY_SIZES() -> [Int]? {return K.KEY_SIZES()}
+    public func blockSize() -> Int? {return self.transposer.blockSize()}
+    public func keySizes() -> [Int]? {return self.expander.keySizes()}
 }
