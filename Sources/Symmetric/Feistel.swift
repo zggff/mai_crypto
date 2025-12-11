@@ -7,9 +7,21 @@ public final class Feistel: Encryptor {
 	public init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) throws {
 		self.expander = expander
 		self.transposer = transposer
-		self.encrypt_keys = try expander.expandKey(key: key)
+        self.encrypt_keys = try expander.expandKey(key: key)
 		self.decrypt_keys = encrypt_keys.reversed()
+
 	}
+
+    public init(expander: KeyExpander, transposer: EncryptTransposer) throws {
+		self.expander = expander
+		self.transposer = transposer
+        self.encrypt_keys = []
+        self.decrypt_keys = []
+	}
+
+    public func setKey(key: Block) throws -> Self {
+        return try Self(key: key, expander: self.expander, transposer: self.transposer)
+    }
 
 	public func encrypt(data: Block) throws -> Block {
 		return try self.transpose(data: data, keys: encrypt_keys, encrypt: true)
@@ -20,6 +32,9 @@ public final class Feistel: Encryptor {
 	}
 
 	func transpose(data: Block, keys: [Block], encrypt: Bool) throws -> Block {
+        guard keys.count > 0 else {
+            throw EncryptionError.keyNotSet
+        }
 		guard data.count % 2 == 0 else {
 			throw EncryptionError.blockSize(data.count, "Blocks must be dividable in two")
 		}

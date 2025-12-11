@@ -14,7 +14,7 @@ public protocol KeyExpander: Sendable {
 	init()
 	func expandKey(key: Block) throws -> [Block]
 	static func KEY_SIZES() -> [Int]?
-    func keySizes() -> [Int]?
+	func keySizes() -> [Int]?
 }
 
 extension KeyExpander {
@@ -28,7 +28,7 @@ public protocol EncryptTransposer: Sendable {
 	func preProcess(data: Block, encrypt: Bool) throws -> Block
 	func postProcess(data: Block, encrypt: Bool) throws -> Block
 	static func BLOCK_SIZE() -> Int?
-    func blockSize() -> Int?
+	func blockSize() -> Int?
 
 }
 
@@ -44,6 +44,7 @@ extension EncryptTransposer {
 
 public protocol Encryptor: Sendable {
 	// init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) throws
+	func setKey(key: Block) -> Self
 	func encrypt(data: Block) throws -> Block
 	func decrypt(data: Block) throws -> Block
 	func blockSize() -> Int?
@@ -52,8 +53,11 @@ public protocol Encryptor: Sendable {
 
 extension Encryptor {
 	public static func BLOCK_SIZE() -> Int? { return nil }
+	public func setKey(key: Block) -> Self {
+        return self
+    }
 	public static func KEY_SIZES() -> [Int]? { return nil }
-    public func blockSize() -> Int? { return nil }
+	public func blockSize() -> Int? { return nil }
 	public func keySizes() -> [Int]? { return nil }
 
 }
@@ -105,6 +109,7 @@ public enum EncryptionError: Error {
 	case keySize(Int, String?)
 	case invalidPadding
 	case outOfRange(Int, Int)
+    case keyNotSet
 	case iv
 }
 
@@ -121,7 +126,7 @@ public class SymmetricEncryptor {
 		encryptor: Encryptor, key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
 		args: [EncryptionModeArg]
 	) throws {
-        self.encryptor = encryptor
+		self.encryptor = encryptor.setKey(key: key)
 		self.mode = mode
 		self.padding = padding
 		self.iv = iv
