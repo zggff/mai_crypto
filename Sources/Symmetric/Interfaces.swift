@@ -1,4 +1,5 @@
 import Darwin
+import Foundation
 
 public enum BitOrder {
 	case forward
@@ -42,7 +43,7 @@ extension EncryptTransposer {
 
 public protocol Encryptor: Sendable {
 	// init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) throws
-    func setKey(key: Block) async throws
+	func setKey(key: Block) async throws
 	func encrypt(data: Block) async throws -> Block
 	func decrypt(data: Block) async throws -> Block
 	func blockSize() async -> Int?
@@ -102,8 +103,9 @@ public enum EncryptionError: Error {
 	case keySize(Int, String?)
 	case invalidPadding
 	case outOfRange(Int, Int)
-    case keyNotSet
+	case keyNotSet
 	case iv
+	case fileOpen(String)
 }
 
 public class SymmetricEncryptor {
@@ -119,8 +121,8 @@ public class SymmetricEncryptor {
 		encryptor: Encryptor, key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
 		args: [EncryptionModeArg]
 	) async throws {
-        self.encryptor = encryptor
-        try await self.encryptor.setKey(key: key)
+		self.encryptor = encryptor
+		try await self.encryptor.setKey(key: key)
 		self.mode = mode
 		self.padding = padding
 		self.iv = iv
@@ -208,6 +210,72 @@ public class SymmetricEncryptor {
 
 	}
 
+	public func encrypt(from: String, to: String) async throws {
+		guard let input = FileHandle(forReadingAtPath: from) else {
+			throw EncryptionError.fileOpen("failed to open path: '\(from)'")
+		}
+		FileManager.default.createFile(atPath: to, contents: nil)
+		guard let output = FileHandle(forWritingAtPath: to) else {
+			throw EncryptionError.fileOpen("failed to open path: '\(to)'")
+		}
+		defer {
+			input.closeFile()
+			output.closeFile()
+		}
+
+		let to_read = block_size * 1024 * 1024
+		// let to_read = block_size
+
+		var offset = 0
+		var prevBlock: Block?
+		while true {
+			let data = try input.read(upToCount: to_read)
+			guard let data = data else {
+				break
+			}
+			let padded = padData(data: Array(data))
+			let blocks: [Byte]
+			(blocks, prevBlock, offset) = try await encryptBlocks(
+				padded: padded, prevBlock: prevBlock, offset: offset)
+			try output.write(contentsOf: blocks)
+		}
+	}
+
+	public func decrypt(from: String, to: String) async throws {
+		guard let input = FileHandle(forReadingAtPath: from) else {
+			throw EncryptionError.fileOpen("failed to open path: '\(from)'")
+		}
+		FileManager.default.createFile(atPath: to, contents: nil)
+		guard let output = FileHandle(forWritingAtPath: to) else {
+			throw EncryptionError.fileOpen("failed to open path: '\(to)'")
+		}
+		defer {
+			input.closeFile()
+			output.closeFile()
+		}
+
+		let to_read = block_size * 1024 * 1024
+		// let to_read = block_size
+
+		var offset = 0
+		var prevBlock: Block?
+		while true {
+			let data = try input.read(upToCount: to_read)
+			guard let data = data else {
+				break
+			}
+			if data.count % block_size != 0 {
+				throw EncryptionError.notFitting
+			}
+			let padded = Array(data).splitInSubArrays(into: block_size)
+			var blocks: [Byte]
+			(blocks, prevBlock, offset) = try await decryptBlocks(
+				padded: padded, prevBlock: prevBlock, offset: offset)
+            try unpadData(data: &blocks)
+			try output.write(contentsOf: blocks)
+		}
+	}
+
 	public func encrypt(data: [Byte]) async throws
 		-> [Byte]
 	{
@@ -215,12 +283,30 @@ public class SymmetricEncryptor {
 			return []
 		}
 		let padded = padData(data: data)
-		return try await encryptBlocks(padded: padded)
+		let (res, _, _) = try await encryptBlocks(padded: padded)
+		return res
+	}
+
+	public func decrypt(data: [Byte]) async throws
+		-> [Byte]
+	{
+		if data.isEmpty {
+			return []
+		}
+		if data.count % block_size != 0 {
+			throw EncryptionError.notFitting
+		}
+
+		let padded = data.splitInSubArrays(into: block_size)
+		var (res, _, _) = try await decryptBlocks(padded: padded)
+        try unpadData(data: &res)
+
+		return res
 	}
 
 	public func encryptBlocks(padded: [Block], prevBlock: [Byte]? = nil, offset: Int = 0)
 		async throws
-		-> [Byte]
+		-> ([Byte], Block?, Int)
 	{
 		// let key = self.key
 		let res: [Byte]
@@ -239,7 +325,7 @@ public class SymmetricEncryptor {
 				for task in tasks {
 					arr.append(contentsOf: try await task.value)
 				}
-				res = arr
+				return (arr, nil, 0)
 			case .cbc:
 				var blocks = [prevBlock ?? self.iv ?? Array(repeating: 0, count: block_size)]
 				for block in padded {
@@ -251,6 +337,8 @@ public class SymmetricEncryptor {
 					{ partial, block in
 						return partial + block
 					})
+				return (res, blocks.last, 0)
+
 			case .pcbc:
 				var to_xor = prevBlock ?? self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = []
@@ -266,6 +354,7 @@ public class SymmetricEncryptor {
 					{ partial, block in
 						return partial + block
 					})
+				return (res, to_xor, 0)
 			case .cfb:
 				let iv = prevBlock ?? self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = [iv]
@@ -280,6 +369,8 @@ public class SymmetricEncryptor {
 					{ partial, block in
 						return partial + block
 					})
+				return (res, blocks.last, 0)
+
 			case .ofb:
 				var prev = prevBlock ?? self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = []
@@ -288,11 +379,12 @@ public class SymmetricEncryptor {
 					// SymmetricEncryptor.encryptBlock(block: &prev, key: key)
 					blocks.append(block ^ prev)
 				}
-				res = blocks.reduce(
+				let res = blocks.reduce(
 					[],
 					{ partial, block in
 						return partial + block
 					})
+				return (res, blocks.last, 0)
 			case .ctr:
 				var tasks: [Task<Block, Error>] = []
 				var arr: [Byte] = []
@@ -312,7 +404,7 @@ public class SymmetricEncryptor {
 				for task in tasks {
 					arr.append(contentsOf: try await task.value)
 				}
-				res = arr
+				return (arr, nil, padded.count)
 			case .randomDelta:
 				let iv = self.iv ?? Array.random(size: block_size)
 				let delta_size = min(iv.count / 2, 8)
@@ -334,27 +426,13 @@ public class SymmetricEncryptor {
 				for task in tasks {
 					arr.append(contentsOf: try await task.value)
 				}
-				res = arr
+				return (arr, nil, padded.count)
 		}
-		return res
 	}
 
-	public func decrypt(data: [Byte]) async throws
-		-> [Byte]
-	{
-		if data.isEmpty {
-			return []
-		}
-		if data.count % block_size != 0 {
-			throw EncryptionError.notFitting
-		}
-
-		let padded = data.splitInSubArrays(into: block_size)
-		return try await decryptBlocks(padded: padded)
-	}
 	public func decryptBlocks(padded: [Block], prevBlock: [Byte]? = nil, offset: Int = 0)
 		async throws
-		-> [Byte]
+		-> ([Byte], Block?, Int)
 	{
 		var res: [Byte]
 		let encryptor = self.encryptor
@@ -372,7 +450,7 @@ public class SymmetricEncryptor {
 				for task in tasks {
 					arr.append(contentsOf: try await task.value)
 				}
-				res = arr
+				return (arr, nil, 0)
 			case .cbc:
 				var blocks: [Block] = []
 				var prev_block = prevBlock ?? self.iv ?? Array(repeating: 0, count: block_size)
@@ -388,6 +466,8 @@ public class SymmetricEncryptor {
 					{ partial, block in
 						return partial + block
 					})
+				return (res, blocks.last, 0)
+
 			case .pcbc:
 				var to_xor = prevBlock ?? self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = []
@@ -405,6 +485,8 @@ public class SymmetricEncryptor {
 					{ partial, block in
 						return partial + block
 					})
+				return (res, to_xor, 0)
+
 			case .cfb:
 				let iv = prevBlock ?? self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = [iv]
@@ -420,6 +502,8 @@ public class SymmetricEncryptor {
 					{ partial, block in
 						return partial + block
 					})
+                return (res, blocks.last, 0)
+
 			case .ofb:
 				var prev = prevBlock ?? self.iv ?? Array(repeating: 0, count: block_size)
 				var blocks: [Block] = []
@@ -433,6 +517,7 @@ public class SymmetricEncryptor {
 					{ partial, block in
 						return partial + block
 					})
+                return (res, blocks.last, 0)
 			case .ctr:
 				var tasks: [Task<Block, Error>] = []
 				var arr: [Byte] = []
@@ -452,7 +537,7 @@ public class SymmetricEncryptor {
 				for task in tasks {
 					arr.append(contentsOf: try await task.value)
 				}
-				res = arr
+				return (arr, nil, padded.count)
 
 			case .randomDelta:
 				let iv = try await encryptor.decrypt(data: padded[0])
@@ -474,9 +559,7 @@ public class SymmetricEncryptor {
 				for task in tasks {
 					arr.append(contentsOf: try await task.value)
 				}
-				res = arr
+				return (arr, nil, padded.count)
 		}
-		try unpadData(data: &res)
-		return res
 	}
 }
