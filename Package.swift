@@ -53,16 +53,8 @@ let package = Package(
 		),
 
 		.testTarget(
-			name: "SymmetricTests",
-			dependencies: ["Symmetric"]
-		),
-		.testTarget(
-			name: "RsaTests",
-			dependencies: ["Rsa"]
-		),
-		.testTarget(
-			name: "AesTests",
-			dependencies: ["Aes"]
+			name: "CryptoTests",
+			dependencies: ["Symmetric", "Rsa", "Aes"]
 		),
 	]
 )
