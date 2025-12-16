@@ -135,13 +135,13 @@ struct Main {
 	static func encrypt(args: [String]) async throws {
 		let params = try parseArgs(args: args)
 		let encryptor = try await Self.getEncryptor(params: params)
-        try await encryptor.encrypt(from: params.path_in!, to: params.path_out!)
+        try await encryptor.encrypt(in: params.path_in!, out: params.path_out!)
 	}
 
 	static func decrypt(args: [String]) async throws {
 		let params = try parseArgs(args: args)
 		let encryptor = try await Self.getEncryptor(params: params)
-        try await encryptor.decrypt(from: params.path_in!, to: params.path_out!)
+        try await encryptor.decrypt(in: params.path_in!, out: params.path_out!)
 	}
 
 	static func main() async throws {

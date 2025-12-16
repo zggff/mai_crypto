@@ -210,7 +210,7 @@ public class SymmetricEncryptor {
 
 	}
 
-	public func encrypt(from: String, to: String) async throws {
+	public func encrypt(in from: String, out to: String) async throws {
 		guard let input = FileHandle(forReadingAtPath: from) else {
 			throw EncryptionError.fileOpen("failed to open path: '\(from)'")
 		}
@@ -241,7 +241,7 @@ public class SymmetricEncryptor {
 		}
 	}
 
-	public func decrypt(from: String, to: String) async throws {
+	public func decrypt(in from: String, out to: String) async throws {
 		guard let input = FileHandle(forReadingAtPath: from) else {
 			throw EncryptionError.fileOpen("failed to open path: '\(from)'")
 		}
