@@ -1,6 +1,6 @@
 import Testing
 
-@testable import Symmetric
+@testable import Crypto
 
 @Suite("Test des")
 struct TestDes {
@@ -58,7 +58,7 @@ struct TestDes {
 	}
 
 	actor AddEncryptor: Encryptor {
-		func setKey(key: Symmetric.Block) async throws {
+		func setKey(key: Block) async throws {
 			self.key = key
 		}
 

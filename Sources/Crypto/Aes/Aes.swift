@@ -1,5 +1,3 @@
-import Symmetric
-
 typealias Word = UInt32
 
 public enum AesError: Error {
@@ -68,7 +66,7 @@ final class AesExpander {
 		self.rounds = rounds
 	}
 
-	func expandKey(key: Symmetric.Block) async throws -> [Word] {
+	func expandKey(key: Block) async throws -> [Word] {
 		let nk = key_size / 4
 		let nb = block_size / 4
 
@@ -156,7 +154,7 @@ public actor AesEncryptor: Encryptor {
 		self.nb = blockSize / 4
 		self.mod = irreducible
 	}
-	public func encrypt(data: Symmetric.Block) async throws -> Symmetric.Block {
+	public func encrypt(data: Block) async throws -> Block {
 		guard expandedKey != nil else {
 			throw EncryptionError.keyNotSet
 		}
@@ -179,7 +177,7 @@ public actor AesEncryptor: Encryptor {
 
 	}
 
-	public func decrypt(data: Symmetric.Block) async throws -> Symmetric.Block {
+	public func decrypt(data: Block) async throws -> Block {
 		guard expandedKey != nil else {
 			throw EncryptionError.keyNotSet
 		}

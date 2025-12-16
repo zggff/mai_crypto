@@ -1,5 +1,3 @@
-import Symmetric
-
 struct GF256 {
 	enum GF256Error: Error {
 		case zeroDivision

@@ -1,7 +1,6 @@
 import Testing
 
-@testable import Aes
-@testable import Symmetric
+@testable import Crypto
 
 @Suite("Aes tests")
 final class AesTests {

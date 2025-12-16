@@ -1,7 +1,6 @@
-import Aes
 import Darwin
 import Foundation
-import Symmetric
+import Crypto
 
 struct RunError: Error {
 	let msg: String

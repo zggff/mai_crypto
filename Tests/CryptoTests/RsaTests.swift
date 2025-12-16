@@ -1,7 +1,7 @@
 import BigInt
 import Testing
 
-@testable import Rsa
+@testable import Crypto
 
 @Suite("Test rsa")
 struct TestRSA {
