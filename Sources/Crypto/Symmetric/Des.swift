@@ -1,6 +1,5 @@
 public final class DesTransposer: EncryptTransposer {
 	public init() {}
-	public static func BLOCK_SIZE() -> Int? { return 8 }
 	public func blockSize() -> Int? { return 8 }
 	static let Ip = [
 		58, 50, 42, 34, 26, 18, 10, 2,
@@ -126,7 +125,6 @@ public final class DesTransposer: EncryptTransposer {
 
 public final class DesExpander: KeyExpander {
 	public init() {}
-    public static func KEY_SIZES() -> [Int]? { return [8] }
     public func keySizes() -> [Int]? { return [8] }
 	public static func PC1() -> [Int] {
 		let res = [

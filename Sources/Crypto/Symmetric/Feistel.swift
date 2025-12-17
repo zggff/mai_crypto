@@ -23,6 +23,7 @@ public actor Feistel: Encryptor {
 	}
 
 	func transpose(data: Block, keys: [Block]?, encrypt: Bool) async throws -> Block {
+
         guard let keys = keys else {
             throw EncryptionError.keyNotSet
         }

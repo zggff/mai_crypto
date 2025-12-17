@@ -5,6 +5,10 @@ struct GF256 {
 	public static func add(_ a: Byte, _ b: Byte) -> Byte {
 		return a ^ b
 	}
+    public static func mul(_ a: Byte, _ b: Byte, mod32: Word) -> Byte {
+        let mod = Byte(mod32 & 0xff)
+        return mul(a, b, mod: mod)
+	}
 	public static func mul(_ a: Byte, _ b: Byte, mod: Byte) -> Byte {
 		var result: Byte = 0
 		var a = a

@@ -13,12 +13,10 @@ public enum FirstBitIndex {
 
 public protocol KeyExpander: Sendable {
 	func expandKey(key: Block) async throws -> [Block]
-	static func KEY_SIZES() -> [Int]?
 	func keySizes() -> [Int]?
 }
 
 extension KeyExpander {
-	public static func KEY_SIZES() -> [Int]? { return nil }
 	public func keySizes() -> [Int]? { return nil }
 }
 
@@ -26,14 +24,8 @@ public protocol EncryptTransposer: Sendable {
 	func transpose(data: Block, key: Block) async throws -> Block
 	func preProcess(data: Block, encrypt: Bool) throws -> Block
 	func postProcess(data: Block, encrypt: Bool) throws -> Block
-	static func BLOCK_SIZE() -> Int?
 	func blockSize() -> Int?
 
-}
-
-extension EncryptTransposer {
-	public static func BLOCK_SIZE() -> Int? { return nil }
-	public func blockSize() -> Int? { return nil }
 }
 
 extension EncryptTransposer {
@@ -42,18 +34,11 @@ extension EncryptTransposer {
 }
 
 public protocol Encryptor: Sendable {
-	// init(key: Block, expander: KeyExpander, transposer: EncryptTransposer) throws
 	func setKey(key: Block) async throws
 	func encrypt(data: Block) async throws -> Block
 	func decrypt(data: Block) async throws -> Block
 	func blockSize() async -> Int?
 	func keySizes() async -> [Int]?
-}
-
-extension Encryptor {
-	public func blockSize() async -> Int? { return nil }
-	public func keySizes() async -> [Int]? { return nil }
-
 }
 
 public enum EncryptionMode: CaseIterable & Sendable {

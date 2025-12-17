@@ -1,4 +1,4 @@
-typealias Word = UInt32
+public typealias Word = UInt32
 
 public enum AesError: Error {
 	case AesReducible

@@ -76,6 +76,12 @@ struct TestDes {
 			new_data -= key
 			return new_data
 		}
+		func keySizes() async -> [Int]? {
+			return nil
+		}
+		func blockSize() async -> Int? {
+			return nil
+		}
 
 	}
 
