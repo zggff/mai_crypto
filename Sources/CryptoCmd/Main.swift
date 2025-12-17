@@ -1,6 +1,6 @@
+import Crypto
 import Darwin
 import Foundation
-import Crypto
 
 struct RunError: Error {
 	let msg: String
@@ -12,7 +12,10 @@ struct RunError: Error {
 enum EncryptionType {
 	case Deal
 	case Des
-	case Aes1616
+	case Aes16
+	case Aes24
+	case Aes32
+	case Twofish
 }
 
 struct Params {
@@ -49,7 +52,10 @@ struct Main {
 					switch type {
 						case "deal": .Deal
 						case "des": .Des
-						case "aes": .Aes1616
+						case "aes16": .Aes16
+						case "aes24": .Aes24
+						case "aes32": .Aes32
+						case "twofish": .Twofish
 						default:
 							throw RunError(
 								"invalid type: \(type). Valid: [deal, des]")
@@ -106,10 +112,17 @@ struct Main {
 				case .Deal:
 					try Feistel(
 						expander: DealExpander(), transposer: DealTransposer())
-				case .Aes1616:
+				case .Aes16:
 					try await AesEncryptor(
-						keySize: 16, blockSize: 16)
-
+						keySize: params.key!.count, blockSize: 16)
+				case .Aes24:
+					try await AesEncryptor(
+						keySize: params.key!.count, blockSize: 24)
+				case .Aes32:
+					try await AesEncryptor(
+						keySize: params.key!.count, blockSize: 32)
+				case .Twofish:
+					TwofishEncryptor()
 			}
 		return try await SymmetricEncryptor(
 			encryptor: encryptor,
@@ -135,13 +148,13 @@ struct Main {
 	static func encrypt(args: [String]) async throws {
 		let params = try parseArgs(args: args)
 		let encryptor = try await Self.getEncryptor(params: params)
-        try await encryptor.encrypt(in: params.path_in!, out: params.path_out!)
+		try await encryptor.encrypt(in: params.path_in!, out: params.path_out!)
 	}
 
 	static func decrypt(args: [String]) async throws {
 		let params = try parseArgs(args: args)
 		let encryptor = try await Self.getEncryptor(params: params)
-        try await encryptor.decrypt(in: params.path_in!, out: params.path_out!)
+		try await encryptor.decrypt(in: params.path_in!, out: params.path_out!)
 	}
 
 	static func main() async throws {
