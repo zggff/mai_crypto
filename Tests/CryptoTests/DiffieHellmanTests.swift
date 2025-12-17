@@ -14,6 +14,40 @@ struct DiffieHellmanTests {
 
 	}
 
+	@Test("Test param generation")
+	func diffieParamTest() async throws {
+		let params = DiffieHellman.generateParameters(bitLength: 32)!
+
+		let private1 = BigInt(6)
+		let public1 = params.generatePublicKey(privateKey: private1)
+
+		let private2 = BigInt(15)
+		let public2 = params.generatePublicKey(privateKey: private2)
+
+		let shared1 = DiffieHellman.computeSharedSecret(
+			privateKey: private1,
+			otherPublicKey: public2,
+			p: params.p
+		)
+		let shared2 = DiffieHellman.computeSharedSecret(
+			privateKey: private2,
+			otherPublicKey: public1,
+			p: params.p
+		)
+
+		#expect(shared1 == shared2)
+        let symmetricKey1 = try DiffieHellman.deriveSymmetricKey(
+			sharedSecret: shared1,
+			keySize: 16
+		)
+        let symmetricKey2 = try DiffieHellman.deriveSymmetricKey(
+			sharedSecret: shared2,
+			keySize: 16
+		)
+        #expect(symmetricKey1 == symmetricKey2)
+
+
+	}
 	@Test("Test diffie with deal")
 	func diffieTest() async throws {
 		let params = DiffieHellman.Parameters(

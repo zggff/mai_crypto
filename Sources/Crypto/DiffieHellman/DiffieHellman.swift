@@ -2,6 +2,21 @@ import BigInt
 import Foundation
 
 public class DiffieHellman {
+	public static let Primes: [BigInt] = {
+		let limit = 1000
+		var sieve = [Bool](repeating: true, count: limit + 1)
+		sieve[0] = false
+		sieve[1] = false
+		for i in 2...limit {
+			if sieve[i] {
+				for j in stride(from: i * i, through: limit, by: i) {
+					sieve[j] = false
+				}
+			}
+		}
+		return (2...limit).filter { sieve[$0] }.map { BigInt($0) }
+
+	}()
 	public struct Parameters: Sendable {
 		public let p: BigInt  // Большое простое число
 		public let g: BigInt  // Первообразный корень по модулю p
@@ -15,6 +30,9 @@ public class DiffieHellman {
 
 		public func validate() -> Bool {
 			return p > 2 && g > 1 && g < p && RsaMath.gcd(g, p) == 1
+		}
+		public func generatePublicKey(privateKey: BigInt) -> BigInt {
+			return RsaMath.modPow(g, privateKey, p)
 		}
 	}
 
@@ -30,8 +48,18 @@ public class DiffieHellman {
 		}
 	}
 
+	/// generate parameters for DiffieHellman exchange
+	/// - Parameters:
+	///   - bitLength: length of p
+	///   - testType: primality test
+	///   - minProbability: required probability of number being prime
+	///
+	/// - Returns: params
+	/// this function should not be used as it's slow and unoptimized
+	/// for secure exchange bitLength should be very high >= 1024
+	/// this algorithm can efficiently calculate 32 and may be used for 64
 	public static func generateParameters(
-		bitLength: Int = 1024,
+		bitLength: Int = 32,
 		testType: Rsa.TestType = .millerRabin,
 		minProbability: Double = 0.999
 	) -> Parameters? {
@@ -52,7 +80,8 @@ public class DiffieHellman {
 	}
 
 	private static func findPrimitiveRoot(p: BigInt) -> BigInt {
-		let candidates: [BigInt] = [2, 3, 5, 7, 11, 13]
+		// let candidates: [BigInt] = [2, 3, 5, 7, 11, 13]
+		let candidates: [BigInt] = Primes
 
 		for g in candidates where g < p {
 			let test = RsaMath.modPow(g, p - 1, p)
