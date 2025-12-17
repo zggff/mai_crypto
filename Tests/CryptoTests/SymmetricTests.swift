@@ -31,17 +31,17 @@ struct TestDes {
 	}
 
 	@Test(
-		"test padding", arguments: PaddingMode.allCases,
+		"test padding", arguments: BlockEncryptor.PaddingMode.allCases,
 		["12345678", "Hello, World"])
-	func testPadding(padding: PaddingMode, key: String) async throws {
+	func testPadding(padding: BlockEncryptor.PaddingMode, key: String) async throws {
 
-		if padding == PaddingMode.ansiX923 && key.count > 8 {
+		if padding == .ansiX923 && key.count > 8 {
 			return
 		}
 
-		let cipher = try await SymmetricEncryptor(
+		let cipher = try await BlockEncryptor(
 			encryptor: AddEncryptor(key: Array(key.utf8)),
-			key: Array(key.utf8), mode: EncryptionMode.ecb, padding: padding, iv: nil, args: [])
+			key: Array(key.utf8), mode: .ecb, padding: padding, iv: nil, args: [])
 		for n in (1...32) {
 			let str: String = (1...n).reduce(
 				"", { partialResult, val in partialResult + " " + String(val) })
@@ -86,14 +86,14 @@ struct TestDes {
 	}
 
 	@Test(
-		"test block modes", arguments: PaddingMode.allCases,
-		EncryptionMode.allCases
+		"test block modes", arguments: BlockEncryptor.PaddingMode.allCases,
+		BlockEncryptor.EncryptionMode.allCases
 	)
-	func testEncryption(padding: PaddingMode, mode: EncryptionMode) async throws {
+	func testEncryption(padding: BlockEncryptor.PaddingMode, mode: BlockEncryptor.EncryptionMode) async throws {
 		let key = "12345678"
 		let iv = "abcdefgh"
 		for n in (1...32) {
-			let cipher = try await SymmetricEncryptor(
+			let cipher = try await BlockEncryptor(
 				encryptor: AddEncryptor(key: Array(key.utf8)),
 				key: Array(key.utf8), mode: mode, padding: padding, iv: Array(iv.utf8), args: []
 			)
@@ -117,9 +117,9 @@ struct TestDes {
 		let key = Array("12345678".utf8)
 		let text = Array("Lorem ipsum dolor".utf8)
 		let des = try Feistel(expander: DesExpander(), transposer: DesTransposer())
-		let encryptor = try await SymmetricEncryptor(
+		let encryptor = try await BlockEncryptor(
 			encryptor: des,
-			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
+			key: key, mode: .ecb, padding: .zeros, iv: nil,
 			args: [])
 		let encrypted = try await encryptor.encrypt(data: text)
 		#expect(
@@ -130,9 +130,9 @@ struct TestDes {
 	func desTestComprehensive() async throws {
 		let key = Array("12345678".utf8)
 		let des = try Feistel(expander: DesExpander(), transposer: DesTransposer())
-		let cipher = try await SymmetricEncryptor(
+		let cipher = try await BlockEncryptor(
 			encryptor: des,
-			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
+			key: key, mode: .ecb, padding: .zeros, iv: nil,
 			args: [])
 		for n in (1...32) {
 			let str: String = (1...n).reduce(
@@ -151,9 +151,9 @@ struct TestDes {
 	func dealTestComprehensive(size: Int) async throws {
 		let key = Array.random(size: size)
 		let deal = try Feistel(expander: DealExpander(), transposer: DealTransposer())
-		let cipher = try await SymmetricEncryptor(
+		let cipher = try await BlockEncryptor(
 			encryptor: deal,
-			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
+			key: key, mode: .ecb, padding: .zeros, iv: nil,
 			args: [])
 		for n in (1...10) {
 			var data = Array.random(size: n * 60)
@@ -163,4 +163,20 @@ struct TestDes {
 			#expect(res == data, "\(data) with \(key)")
 		}
 	}
+    @Test("Triple des encryption", arguments: [16, 24], TripleDes.Mode.allCases)
+	func des3TestComprehensive(size: Int, mode: TripleDes.Mode) async throws {
+		let key = Array.random(size: size)
+		let cipher = try await BlockEncryptor(
+			encryptor: TripleDes(mode: mode),
+			key: key, mode: .ecb, padding: .zeros, iv: nil,
+			args: [])
+		for n in (1...10) {
+			var data = Array.random(size: n * 60)
+			try cipher.unpadData(data: &data)
+			let encr = try await cipher.encrypt(data: data)
+			let res = try await cipher.decrypt(data: encr)
+			#expect(res == data, "\(data) with \(key)")
+		}
+	}
+
 }

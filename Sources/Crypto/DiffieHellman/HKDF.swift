@@ -71,8 +71,8 @@ public struct SHA256 {
         }
         
         for i in 16..<64 {
-            let s0 = rightRotate(w[i-15], 7) ^ rightRotate(w[i-15], 18) ^ (w[i-15] >> 3)
-            let s1 = rightRotate(w[i-2], 17) ^ rightRotate(w[i-2], 19) ^ (w[i-2] >> 10)
+            let s0 = w[i-15].rotr(7) ^ w[i-15].rotr(18) ^ (w[i-15] >> 3)
+            let s1 = w[i-2].rotr(17) ^ w[i-2].rotr(19) ^ (w[i-2] >> 10)
             w[i] = w[i-16] &+ s0 &+ w[i-7] &+ s1
         }
         
@@ -80,10 +80,10 @@ public struct SHA256 {
         var e = h[4], f = h[5], g = h[6], hVal = h[7]
         
         for i in 0..<64 {
-            let s1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)
+            let s1 = e.rotr(6) ^ e.rotr(11) ^ e.rotr(25)
             let ch = (e & f) ^ (~e & g)
             let temp1 = hVal &+ s1 &+ ch &+ SHA256.k[i] &+ w[i]
-            let s0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)
+            let s0 = a.rotr(2) ^ a.rotr(13) ^ a.rotr(22)
             let maj = (a & b) ^ (a & c) ^ (b & c)
             let temp2 = s0 &+ maj
             
@@ -107,9 +107,6 @@ public struct SHA256 {
         h[7] = h[7] &+ hVal
     }
     
-    private func rightRotate(_ value: UInt32, _ count: Int) -> UInt32 {
-        return (value >> count) | (value << (32 - count))
-    }
     
     public static func hash(_ data: [UInt8]) -> [UInt8] {
         var sha = SHA256()
@@ -220,13 +217,5 @@ public struct HKDF {
     public func deriveKey(salt: [Byte]?, ikm: [Byte], info: [Byte], length: Int) throws -> [Byte] {
         let prk = extract(salt: salt, ikm: ikm)
         return try expand(prk: prk, info: info, length: length)
-    }
-}
-
-extension Array where Element == UInt8 {
-    func chunked(into size: Int) -> [[Element]] {
-        stride(from: 0, to: count, by: size).map {
-            Array(self[$0..<Swift.min($0 + size, count)])
-        }
     }
 }

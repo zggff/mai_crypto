@@ -300,12 +300,3 @@ public actor TwofishEncryptor: Encryptor {
 	}
 
 }
-
-extension BinaryInteger {
-	func rotl(_ by: Int) -> Self {
-		return ((self << by) | (self >> (32 - by)))
-	}
-	func rotr(_ by: Int) -> Self {
-		return ((self >> by) | (self << (32 - by)))
-	}
-}

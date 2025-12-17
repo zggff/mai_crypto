@@ -19,8 +19,8 @@ enum EncryptionType {
 }
 
 struct Params {
-	var padding: PaddingMode?
-	var mode: EncryptionMode?
+	var padding: BlockEncryptor.PaddingMode?
+	var mode: BlockEncryptor.EncryptionMode?
 	var type: EncryptionType?
 	var key: Block?
 	var iv: Block?
@@ -38,13 +38,13 @@ struct Main {
 				let padding = arg.trimmingPrefix("-p=")
 				params.padding =
 					switch padding {
-						case "zeros": PaddingMode.zeros
-						case "ansiX923": PaddingMode.ansiX923
-						case "pkcs7": PaddingMode.pkcs7
-						case "iso10126": PaddingMode.iso10126
+						case "zeros": .zeros
+						case "ansiX923": .ansiX923
+						case "pkcs7": .pkcs7
+						case "iso10126": .iso10126
 						default:
 							throw RunError(
-								"invalid padding: \(padding). Valid: \(PaddingMode.allCases)")
+								"invalid padding: \(padding). Valid: \(BlockEncryptor.PaddingMode.allCases)")
 					}
 			} else if arg.hasPrefix("-t=") {
 				let type = arg.trimmingPrefix("-t=")
@@ -67,16 +67,16 @@ struct Main {
 				let mode = arg.trimmingPrefix("-b=")
 				params.mode =
 					switch mode {
-						case "ecb": EncryptionMode.ecb
-						case "cbc": EncryptionMode.cbc
-						case "pcbc": EncryptionMode.pcbc
-						case "cfb": EncryptionMode.cfb
-						case "ofb": EncryptionMode.ofb
-						case "ctr": EncryptionMode.ctr
-						case "randomDelta": EncryptionMode.randomDelta
+						case "ecb":.ecb
+						case "cbc": .cbc
+						case "pcbc": .pcbc
+						case "cfb": .cfb
+						case "ofb": .ofb
+						case "ctr": .ctr
+						case "randomDelta": .randomDelta
 						default:
 							throw RunError(
-								"invalid mode: \(mode). Valid: \(EncryptionMode.allCases)")
+								"invalid mode: \(mode). Valid: \(BlockEncryptor.EncryptionMode.allCases)")
 					}
 			} else if arg.starts(with: "-") {
 				throw RunError(
@@ -97,13 +97,13 @@ struct Main {
 		guard params.key != nil || params.path_in != nil || params.path_out != nil else {
 			throw RunError("key, path to input and path to output must be provided")
 		}
-		params.padding = params.padding ?? PaddingMode.zeros
-		params.mode = params.mode ?? EncryptionMode.randomDelta
+		params.padding = params.padding ?? .zeros
+		params.mode = params.mode ?? .randomDelta
 		params.type = params.type ?? .Des
 
 		return params
 	}
-	static func getEncryptor(params: Params) async throws -> SymmetricEncryptor {
+	static func getEncryptor(params: Params) async throws -> BlockEncryptor {
 		let encryptor: Encryptor =
 			switch params.type! {
 				case .Des:
@@ -124,7 +124,7 @@ struct Main {
 				case .Twofish:
 					TwofishEncryptor()
 			}
-		return try await SymmetricEncryptor(
+		return try await BlockEncryptor(
 			encryptor: encryptor,
 			key: params.key!, mode: params.mode!, padding: params.padding!, iv: params.iv,
 			args: [])

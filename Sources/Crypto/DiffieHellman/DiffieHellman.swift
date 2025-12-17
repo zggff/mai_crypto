@@ -170,13 +170,3 @@ public class DiffieHellman {
 		return bytes
 	}
 }
-
-extension BigInt {
-	func toString(radix: Int = 10, maxLength: Int = 50) -> String {
-		let str = String(self, radix: radix)
-		if str.count > maxLength {
-			return String(str.prefix(maxLength)) + "..."
-		}
-		return str
-	}
-}

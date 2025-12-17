@@ -46,7 +46,7 @@ struct DiffieHellmanTests {
 			sharedSecret: shared1,
 			keySize: 16
 		)
-		let encryptor = try await SymmetricEncryptor(
+		let encryptor = try await BlockEncryptor(
 			encryptor: try Feistel(expander: DealExpander(), transposer: DealTransposer()),
 			key: symmetricKey,
 			mode: .ecb,

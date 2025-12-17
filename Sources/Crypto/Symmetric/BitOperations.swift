@@ -1,5 +1,3 @@
-public typealias Byte = UInt8
-
 extension BinaryInteger {
 	public func bitStr() -> String {
 		var res = "0b"

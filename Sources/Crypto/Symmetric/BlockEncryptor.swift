@@ -1,100 +1,24 @@
 import Darwin
 import Foundation
 
-public enum BitOrder {
-	case forward
-	case backward
-}
-
-public enum FirstBitIndex {
-	case zero
-	case one
-}
-
-public protocol KeyExpander: Sendable {
-	func expandKey(key: Block) async throws -> [Block]
-	func keySizes() -> [Int]?
-}
-
-extension KeyExpander {
-	public func keySizes() -> [Int]? { return nil }
-}
-
-public protocol EncryptTransposer: Sendable {
-	func transpose(data: Block, key: Block) async throws -> Block
-	func preProcess(data: Block, encrypt: Bool) throws -> Block
-	func postProcess(data: Block, encrypt: Bool) throws -> Block
-	func blockSize() -> Int?
-
-}
-
-extension EncryptTransposer {
-	public func preProcess(data: Block, encrypt: Bool = true) throws -> Block { return data }
-	public func postProcess(data: Block, encrypt: Bool = true) throws -> Block { return data }
-}
-
-public protocol Encryptor: Sendable {
-	func setKey(key: Block) async throws
-	func encrypt(data: Block) async throws -> Block
-	func decrypt(data: Block) async throws -> Block
-	func blockSize() async -> Int?
-	func keySizes() async -> [Int]?
-}
-
-public enum EncryptionMode: CaseIterable & Sendable {
-	case ecb
-	case cbc
-	case pcbc
-	case cfb
-	case ofb
-	case ctr
-	case randomDelta
-}
-
-public enum PaddingMode: CaseIterable & Sendable {
-	case zeros
-	case ansiX923
-	case pkcs7
-	case iso10126
-}
-
-public enum EncryptionModeArg: Sendable {}
-
-extension Array {
-	public var lastMut: Element {
-		get {
-			return self[count - 1]
-		}
-		set {
-			self[count - 1] = newValue
-		}
+public class BlockEncryptor {
+	public enum EncryptionMode: CaseIterable & Sendable {
+		case ecb
+		case cbc
+		case pcbc
+		case cfb
+		case ofb
+		case ctr
+		case randomDelta
 	}
-}
 
-public typealias Block = [Byte]
-
-extension Array {
-	public func splitInSubArrays(into size: Int) -> [[Element]] {
-		let cnt = (self.count - 1) / size + 1
-		return (0..<cnt).map({ i in Array(self[i * size..<Swift.min(((i + 1) * size), self.count)])
-		})
+	public enum PaddingMode: CaseIterable & Sendable {
+		case zeros
+		case ansiX923
+		case pkcs7
+		case iso10126
 	}
-}
 
-public enum EncryptionError: Error {
-	case notFitting
-	case runtimeError(String)
-	case blockSize(Int, String?)
-	case keySize(Int, String?)
-	case invalidPadding
-	case outOfRange(Int, Int)
-	case keyNotSet
-	case iv
-	case fileOpen(String)
-}
-
-public class SymmetricEncryptor {
-	// let key: [Byte]
 	let block_size: Int
 	let mode: EncryptionMode
 	let padding: PaddingMode
@@ -130,7 +54,7 @@ public class SymmetricEncryptor {
 	}
 
 	func padData(data: [Byte]) -> [Block] {
-		var blocks = data.splitInSubArrays(into: block_size)
+		var blocks = data.chunked(into: block_size)
 		let to_pad =
 			blocks.last!.count % block_size == 0
 			? 0 : block_size - (blocks.last!.count % block_size)
@@ -252,11 +176,11 @@ public class SymmetricEncryptor {
 			if data.count % block_size != 0 {
 				throw EncryptionError.notFitting
 			}
-			let padded = Array(data).splitInSubArrays(into: block_size)
+			let padded = Array(data).chunked(into: block_size)
 			var blocks: [Byte]
 			(blocks, prevBlock, offset) = try await decryptBlocks(
 				padded: padded, prevBlock: prevBlock, offset: offset)
-            try unpadData(data: &blocks)
+			try unpadData(data: &blocks)
 			try output.write(contentsOf: blocks)
 		}
 	}
@@ -282,9 +206,9 @@ public class SymmetricEncryptor {
 			throw EncryptionError.notFitting
 		}
 
-		let padded = data.splitInSubArrays(into: block_size)
+		let padded = data.chunked(into: block_size)
 		var (res, _, _) = try await decryptBlocks(padded: padded)
-        try unpadData(data: &res)
+		try unpadData(data: &res)
 
 		return res
 	}
@@ -487,7 +411,7 @@ public class SymmetricEncryptor {
 					{ partial, block in
 						return partial + block
 					})
-                return (res, blocks.last, 0)
+				return (res, blocks.last, 0)
 
 			case .ofb:
 				var prev = prevBlock ?? self.iv ?? Array(repeating: 0, count: block_size)
@@ -502,7 +426,7 @@ public class SymmetricEncryptor {
 					{ partial, block in
 						return partial + block
 					})
-                return (res, blocks.last, 0)
+				return (res, blocks.last, 0)
 			case .ctr:
 				var tasks: [Task<Block, Error>] = []
 				var arr: [Byte] = []

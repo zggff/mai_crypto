@@ -10,9 +10,9 @@ struct TwofishTests {
 		let key = Array("1234567887654321".utf8)
 		let plaintext = Array("hello from twofish encryptor".utf8)
 		let expected = "8ad8ef63241e1ff46c2c57e6a23028d154d515cf61c5ade67a6ef0fdc733c962"
-		let cipher = try await SymmetricEncryptor(
-			encryptor: TwofishEncryptor(), key: key, mode: EncryptionMode.ecb,
-			padding: PaddingMode.zeros,
+		let cipher = try await BlockEncryptor(
+			encryptor: TwofishEncryptor(), key: key, mode: .ecb,
+			padding: .zeros,
 			iv: nil, args: [])
 		let encr = try await cipher.encrypt(data: plaintext)
 		#expect(encr.toHexString() == expected)
@@ -20,9 +20,9 @@ struct TwofishTests {
 	@Test("Twofish encryption", arguments: [16, 24, 32])
 	func twofishTestComprehensive(size: Int) async throws {
 		let key = Array.random(size: size)
-		let cipher = try await SymmetricEncryptor(
+		let cipher = try await BlockEncryptor(
 			encryptor: TwofishEncryptor(),
-			key: key, mode: EncryptionMode.ecb, padding: PaddingMode.zeros, iv: nil,
+			key: key, mode: .ecb, padding: .zeros, iv: nil,
 			args: [])
 		for n in (1...10) {
 			var data = Array.random(size: n * 60)
