@@ -213,7 +213,7 @@ public class BlockEncryptor {
 		return res
 	}
 
-	public func encryptBlocks(padded: [Block], prevBlock: [Byte]? = nil, offset: Int = 0)
+	private func encryptBlocks(padded: [Block], prevBlock: [Byte]? = nil, offset: Int = 0)
 		async throws
 		-> ([Byte], Block?, Int)
 	{
@@ -339,7 +339,7 @@ public class BlockEncryptor {
 		}
 	}
 
-	public func decryptBlocks(padded: [Block], prevBlock: [Byte]? = nil, offset: Int = 0)
+	private func decryptBlocks(padded: [Block], prevBlock: [Byte]? = nil, offset: Int = 0)
 		async throws
 		-> ([Byte], Block?, Int)
 	{

@@ -171,8 +171,7 @@ struct TestDes {
 			key: key, mode: .ecb, padding: .zeros, iv: nil,
 			args: [])
 		for n in (1...10) {
-			var data = Array.random(size: n * 60)
-			try cipher.unpadData(data: &data)
+			let data = Array.random(size: n * 60)
 			let encr = try await cipher.encrypt(data: data)
 			let res = try await cipher.decrypt(data: encr)
 			#expect(res == data, "\(data) with \(key)")
