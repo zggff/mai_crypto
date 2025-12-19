@@ -89,22 +89,13 @@ public class Rsa {
 				let n = p * q
 				let phi = (p - 1) * (q - 1)
 
-				let eCandidates = [BigInt(65537), BigInt(3), BigInt(5), BigInt(17), BigInt(257)]
-				var e: BigInt? = nil
-				for cand in eCandidates {
-					if math.gcd(cand, phi) == 1 {
-						e = cand
-						break
-					}
-				}
-				if e == nil {
-					e = BigInt(3)
-					while math.gcd(e!, phi) != 1 {
-						e! += 2
-					}
-				}
+				var e: BigInt = 3
+                e = BigInt(3)
+                while math.gcd(e, phi) != 1 {
+                    e += 2
+                }
 
-				guard let d = math.modInverse(e!, phi) else { continue }
+				guard let d = math.modInverse(e, phi) else { continue }
 
 				let nDouble = n
 				let nBitWidth = nDouble.bitWidth
@@ -114,7 +105,7 @@ public class Rsa {
 				}
 
 				return KeyPair(
-					pub: PublicKey(n: n, e: e!),
+					pub: PublicKey(n: n, e: e),
 					pri: PrivateKey(d: d, p: p, q: q))
 			}
 		}
