@@ -141,6 +141,10 @@ public class Rsa {
 		return RsaMath.modPow(message, kp.pub.e, kp.pub.n)
 	}
 
+    func encrypt(message: BigInt, key: PublicKey) -> BigInt {
+		return RsaMath.modPow(message, key.e, key.n)
+	}
+
 	func decrypt(cipher: BigInt) -> BigInt {
 		guard let kp = keyPair else { fatalError("no key pair") }
 		return RsaMath.modPow(cipher, kp.pri.d, kp.pub.n)

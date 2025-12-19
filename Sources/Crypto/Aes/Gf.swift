@@ -1,4 +1,4 @@
-struct GF256 {
+public struct GF256 {
 	enum GF256Error: Error {
 		case zeroDivision
 	}
@@ -44,7 +44,7 @@ struct GF256 {
 		return a == 0 ? 0 : pow(a, e: 254, mod: mod)
 	}
 
-	private static func remainder(of: Int, by: Int) throws -> Int {
+	public static func remainder(of: Int, by: Int) throws -> Int {
 		if by == 0 {
 			throw GF256Error.zeroDivision
 		}
@@ -56,7 +56,7 @@ struct GF256 {
 		return of
 	}
 
-	private static func degree(_ a: Int) -> Int {
+	public static func degree(_ a: Int) -> Int {
 		for i in (0...31).reversed() {
 			if ((a >> i) & 1) == 1 {
 				return i
