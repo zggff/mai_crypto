@@ -90,7 +90,7 @@ public class Rsa {
 				let phi = (p - 1) * (q - 1)
 
 				var e: BigInt = 3
-				e = BigInt(3)
+				e = BigInt(257)
 				while math.gcd(e, phi) != 1 {
 					e += 2
 				}
