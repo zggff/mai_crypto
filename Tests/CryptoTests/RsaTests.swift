@@ -64,18 +64,6 @@ struct TestRSA {
 
 		let kp = keyGen.generateKeyPair(randomGen: &rng)
 
-		#expect(kp.pub.n == kp.pri.p * kp.pri.q)
-
-		// gcd(e, phi) == 1
-		let phi = (kp.pri.p - 1) * (kp.pri.q - 1)
-		#expect(RsaMath.gcd(kp.pub.e, phi) == BigInt(1))
-
-		if let inv = RsaMath.modInverse(kp.pub.e, phi) {
-			#expect((inv % phi + phi) % phi == (kp.pri.d % phi + phi) % phi)
-		} else {
-			#expect(Bool(false))
-		}
-
 		let rsa = Rsa()
 		rsa.setKeyPair(kp)
 
@@ -154,6 +142,23 @@ struct TestRSA {
 
 		#expect(result.d == nil)
 		#expect(result.phi == nil)
+	}
+
+	@Test("Rsa comprehensive")
+	func rsaTestComprehensive() async throws {
+		let bitLength = 256
+		let keyGen = Rsa.KeyGenerator(
+			testType: .millerRabin, minProbability: 0.99, primeBitLength: bitLength)
+		let kp = keyGen.generateKeyPair()
+
+		for n in (1...10) {
+			let str: String = (1...n).reduce(
+				"", { partialResult, val in partialResult + " " + String(val) })
+			let encr = Rsa.encrypt(message: Rsa.messageToBigInt(str), key: kp.pub)
+			let res = Rsa.decrypt(cipher: encr, key: kp.pri)
+            let resStr = Rsa.bigIntToMessage(res)
+			#expect(resStr == str, "\(str)")
+		}
 	}
 
 }

@@ -15,8 +15,9 @@ public class Rsa {
 
 	public struct PrivateKey: Sendable {
 		let d: BigInt
-		let p: BigInt
-		let q: BigInt
+		let n: BigInt
+        let q: BigInt
+        let p: BigInt
 	}
 
 	public struct KeyPair: Sendable {
@@ -106,7 +107,7 @@ public class Rsa {
 
 				return KeyPair(
 					pub: PublicKey(n: n, e: e),
-					pri: PrivateKey(d: d, p: p, q: q))
+					pri: PrivateKey(d: d, n: n, q: q, p: p))
 			}
 		}
 
@@ -143,7 +144,7 @@ public class Rsa {
 		return RsaMath.modPow(message, kp.pub.e, kp.pub.n)
 	}
 
-	func encrypt(message: BigInt, key: PublicKey) -> BigInt {
+	static func encrypt(message: BigInt, key: PublicKey) -> BigInt {
 		return RsaMath.modPow(message, key.e, key.n)
 	}
 
@@ -151,7 +152,11 @@ public class Rsa {
 		guard let kp = keyPair else {
 			throw EncryptionError.keyNotSet
 		}
-		return RsaMath.modPow(cipher, kp.pri.d, kp.pub.n)
+		return RsaMath.modPow(cipher, kp.pri.d, kp.pri.n)
+	}
+
+    static func decrypt(cipher: BigInt, key: PrivateKey) -> BigInt {
+		return RsaMath.modPow(cipher, key.d, key.n)
 	}
 
 	static func messageToBigInt(_ message: String) -> BigInt {
