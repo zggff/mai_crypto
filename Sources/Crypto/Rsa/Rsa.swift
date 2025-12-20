@@ -90,10 +90,10 @@ public class Rsa {
 				let phi = (p - 1) * (q - 1)
 
 				var e: BigInt = 3
-                e = BigInt(3)
-                while math.gcd(e, phi) != 1 {
-                    e += 2
-                }
+				e = BigInt(3)
+				while math.gcd(e, phi) != 1 {
+					e += 2
+				}
 
 				guard let d = math.modInverse(e, phi) else { continue }
 
@@ -128,7 +128,7 @@ public class Rsa {
 		}
 	}
 
-	var keyPair: KeyPair?
+	public var keyPair: KeyPair?
 
 	init() {}
 
@@ -136,17 +136,21 @@ public class Rsa {
 		self.keyPair = kp
 	}
 
-	func encrypt(message: BigInt) -> BigInt {
-		guard let kp = keyPair else { fatalError("no key pair") }
+	func encrypt(message: BigInt) throws -> BigInt {
+		guard let kp = keyPair else {
+			throw EncryptionError.keyNotSet
+		}
 		return RsaMath.modPow(message, kp.pub.e, kp.pub.n)
 	}
 
-    func encrypt(message: BigInt, key: PublicKey) -> BigInt {
+	func encrypt(message: BigInt, key: PublicKey) -> BigInt {
 		return RsaMath.modPow(message, key.e, key.n)
 	}
 
-	func decrypt(cipher: BigInt) -> BigInt {
-		guard let kp = keyPair else { fatalError("no key pair") }
+	func decrypt(cipher: BigInt) throws -> BigInt {
+		guard let kp = keyPair else {
+			throw EncryptionError.keyNotSet
+		}
 		return RsaMath.modPow(cipher, kp.pri.d, kp.pub.n)
 	}
 

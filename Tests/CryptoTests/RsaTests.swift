@@ -56,7 +56,7 @@ struct TestRSA {
 	// RSAEncoder
 	// RsaEncoder <- this is better
 	@Test("Rsa", arguments: [Rsa.TestType.millerRabin])
-	func testRsa(testType: Rsa.TestType) {
+	func testRsa(testType: Rsa.TestType) throws {
 		var rng = SystemRandomNumberGenerator()
 		let bitLength = 128
 		let keyGen = Rsa.KeyGenerator(
@@ -81,15 +81,15 @@ struct TestRSA {
 
 		let messageInt = BigInt(42)
 
-		let cipher = rsa.encrypt(message: messageInt)
+		let cipher = try rsa.encrypt(message: messageInt)
 		#expect(cipher != messageInt)
 
-		let decrypted = rsa.decrypt(cipher: cipher)
+		let decrypted = try rsa.decrypt(cipher: cipher)
 		#expect(decrypted == messageInt)
 	}
 
 	@Test("RSA strings")
-	func testRsaString() {
+	func testRsaString() throws {
 		var rng = SystemRandomNumberGenerator()
 		let bitLength = 128
 		let keyGen = Rsa.KeyGenerator(
@@ -102,8 +102,8 @@ struct TestRSA {
 		let original = "this is a test message for rsa"
 		let mInt = Rsa.messageToBigInt(original)
 
-		let cipher = rsa.encrypt(message: mInt)
-		let decrypted = rsa.decrypt(cipher: cipher)
+		let cipher = try rsa.encrypt(message: mInt)
+		let decrypted = try rsa.decrypt(cipher: cipher)
 
 		let decoded = Rsa.bigIntToMessage(decrypted)
 		#expect(decoded! == original)
