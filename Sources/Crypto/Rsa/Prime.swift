@@ -44,11 +44,7 @@ class AbstractPrimeTest: PrimeTest {
 	func randomInRange(_ lo: BigInt, _ hi: BigInt, randomBitGenerator: (Int) -> BigInt) -> BigInt {
 		precondition(lo <= hi)
 		let range = hi - lo + 1
-		let bitWidth = hi.bitWidth
-		var r: BigInt
-		repeat {
-			r = randomBitGenerator(bitWidth) % range
-		} while r < 0
+		let r: BigInt = abs(randomBitGenerator(hi.bitWidth) % range)
 		return lo + r
 	}
 
