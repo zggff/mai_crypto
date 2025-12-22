@@ -53,6 +53,25 @@ struct TestRSA {
 		#expect(!ss.isProbablyPrime(15, randomBitGenerator: { _ in BigInt(3) }))
 	}
 
+	@Test("Probability")
+	func testPrimes() {
+        let primes = AbstractPrimeTest.sieve(limit: 10000)
+		let sst = SolovayStrassenTest(minProbability: 0.99)
+		let ft = FermatTest(minProbability: 0.99)
+		let mrt = MillerRabinTest(minProbability: 0.99)
+		for prime in primes {
+            let s = sst.isProbablyPrime(prime)
+            let f = ft.isProbablyPrime(prime)
+            let m = mrt.isProbablyPrime(prime)
+			#expect(s, "solvay strassen false negative")
+			#expect(f, "fermat false negative")
+			#expect(m, "miller rabin false negative")
+            if (!(s || f || m)) {
+                break
+            }
+		}
+	}
+
 	// RSAEncoder
 	// RsaEncoder <- this is better
 	@Test("Rsa", arguments: [Rsa.TestType.millerRabin])
@@ -156,7 +175,7 @@ struct TestRSA {
 				"", { partialResult, val in partialResult + " " + String(val) })
 			let encr = Rsa.encrypt(message: Rsa.messageToBigInt(str), key: kp.pub)
 			let res = Rsa.decrypt(cipher: encr, key: kp.pri)
-            let resStr = Rsa.bigIntToMessage(res)
+			let resStr = Rsa.bigIntToMessage(res)
 			#expect(resStr == str, "\(str)")
 		}
 	}

@@ -1,21 +1,19 @@
 import BigInt
 import Foundation
 
-protocol PrimeTest {
-	func singleIteration(n: BigInt, rand: () -> BigInt) -> Bool
-}
-
-class AbstractPrimeTest: PrimeTest {
+public class AbstractPrimeTest {
 	let math = RsaMath.self
 
 	let minProbability: Double
 
-	init(minProbability: Double) {
+	public init(minProbability: Double) {
 		precondition(minProbability >= 0.5 && minProbability < 1.0)
 		self.minProbability = minProbability
 	}
 
-	func isProbablyPrime(_ n: BigInt, randomBitGenerator: (Int) -> BigInt) -> Bool {
+	public func isProbablyPrime(_ n: BigInt, randomBitGenerator: (Int) -> BigInt = randomBigInt)
+		-> Bool
+	{
 		if n < 2 { return false }
 		if n == 2 || n == 3 { return true }
 		if n % 2 == 0 { return false }
@@ -41,7 +39,9 @@ class AbstractPrimeTest: PrimeTest {
 		return max(1, k)
 	}
 
-	func randomInRange(_ lo: BigInt, _ hi: BigInt, randomBitGenerator: (Int) -> BigInt) -> BigInt {
+	func randomInRange(
+		_ lo: BigInt, _ hi: BigInt, randomBitGenerator: (Int) -> BigInt
+	) -> BigInt {
 		precondition(lo <= hi)
 		let range = hi - lo + 1
 		let r: BigInt = abs(randomBitGenerator(hi.bitWidth) % range)
@@ -51,9 +51,43 @@ class AbstractPrimeTest: PrimeTest {
 	func singleIteration(n: BigInt, rand: () -> BigInt) -> Bool {
 		fatalError("override")
 	}
+
+	public static func randomBigInt(bitLength: Int) -> BigInt {
+		var rng = SystemRandomNumberGenerator()
+		return randomBigInt(bitLength: bitLength, rand: &rng)
+	}
+
+	public static func randomBigInt(bitLength: Int, rand: inout SystemRandomNumberGenerator)
+		-> BigInt
+	{
+		precondition(bitLength >= 2)
+		let bytes = (bitLength + 7) / 8
+		var data = Data(count: bytes)
+		data.withUnsafeMutableBytes { (ptr: UnsafeMutableRawBufferPointer) in
+			let buf = ptr.bindMemory(to: UInt8.self)
+			for i in 0..<bytes {
+				buf[i] = UInt8.random(in: 0...255, using: &rand)
+			}
+		}
+		return BigInt(Data(data))
+	}
+	public static func sieve(limit: Int) -> [BigInt] {
+		var sieve = [Bool](repeating: true, count: limit + 1)
+		sieve[0] = false
+		sieve[1] = false
+		for i in 2...limit {
+			if sieve[i] {
+				for j in stride(from: i * i, through: limit, by: i) {
+					sieve[j] = false
+				}
+			}
+		}
+		return (2...limit).filter { sieve[$0] }.map { BigInt($0) }
+
+	}
 }
 
-class FermatTest: AbstractPrimeTest {
+public class FermatTest: AbstractPrimeTest {
 	override func singleIteration(n: BigInt, rand: () -> BigInt) -> Bool {
 		let a = rand()
 		let res = RsaMath.modPow(a, n - 1, n)
@@ -62,19 +96,21 @@ class FermatTest: AbstractPrimeTest {
 	override func errorProbabilityPerIteration() -> Double { return 0.5 }
 }
 
-class SolovayStrassenTest: AbstractPrimeTest {
+public class SolovayStrassenTest: AbstractPrimeTest {
 	override func singleIteration(n: BigInt, rand: () -> BigInt) -> Bool {
 		let a = rand()
 		let x = RsaMath.modPow(a, (n - 1) / 2, n)
-		let j = RsaMath.jacobiSymbol(a: a, n: n)
-		var jMod = BigInt(0)
-		if j == -1 { jMod = n - 1 } else if j == 0 { jMod = 0 } else { jMod = 1 }
-		return x == jMod
+		var j = BigInt(RsaMath.jacobiSymbol(a: a, n: n))
+		if j < 0 {
+			j = n - 1
+		}
+
+		return x == j
 	}
 	override func errorProbabilityPerIteration() -> Double { return 0.5 }
 }
 
-class MillerRabinTest: AbstractPrimeTest {
+public class MillerRabinTest: AbstractPrimeTest {
 	override func singleIteration(n: BigInt, rand: () -> BigInt) -> Bool {
 		let a = rand()
 		var d = n - 1

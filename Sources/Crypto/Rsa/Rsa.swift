@@ -41,7 +41,7 @@ public class Rsa {
 		public func generateProbablePrime(randomGen: inout SystemRandomNumberGenerator) -> BigInt {
 			while true {
 				let candidate =
-					Rsa.KeyGenerator.randomBigInt(
+					AbstractPrimeTest.randomBigInt(
 						bitLength: primeBitLength, rand: &randomGen) | 1
 				if isProbablePrime(candidate) {
 					return candidate
@@ -52,7 +52,7 @@ public class Rsa {
 		public func isProbablePrime(_ n: BigInt) -> Bool {
 			let generator: (Int) -> BigInt = { bits in
 				var rng = SystemRandomNumberGenerator()
-				return KeyGenerator.randomBigInt(bitLength: bits, rand: &rng)
+				return AbstractPrimeTest.randomBigInt(bitLength: bits, rand: &rng)
 			}
 			switch testType {
 				case .fermat:
@@ -111,22 +111,7 @@ public class Rsa {
 			}
 		}
 
-		static func randomBigInt(bitLength: Int, rand: inout SystemRandomNumberGenerator) -> BigInt
-		{
-			precondition(bitLength >= 2)
-			let bytes = (bitLength + 7) / 8
-			var data = Data(count: bytes)
-			data.withUnsafeMutableBytes { (ptr: UnsafeMutableRawBufferPointer) in
-				let buf = ptr.bindMemory(to: UInt8.self)
-				for i in 0..<bytes {
-					buf[i] = UInt8.random(in: 0...255, using: &rand)
-				}
-			}
-			var value = BigInt(Data(data))
-			let topBit = BigInt(1) << (bitLength - 1)
-			value |= topBit
-			return value
-		}
+
 	}
 
 	public var keyPair: KeyPair?

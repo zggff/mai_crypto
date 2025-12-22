@@ -149,7 +149,7 @@ public class DiffieHellman {
 		var privateKey: BigInt
 
 		repeat {
-			privateKey = Rsa.KeyGenerator.randomBigInt(bitLength: bitLength, rand: &rng) % (p - 2)
+			privateKey = AbstractPrimeTest.randomBigInt(bitLength: bitLength, rand: &rng) % (p - 2)
 		} while privateKey <= 1
 
 		return privateKey
