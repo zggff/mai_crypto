@@ -4,7 +4,7 @@ import Foundation
 
 struct Main {
 	static func main() async throws {
-		let aes = try await AesEncryptor(keySize: 16, blockSize: 16)
+		var aes = try await AesEncryptor(keySize: 16, blockSize: 16)
 		try await aes.setKey(key: Array("1234567887654321".utf8))
 		// print(GF256.irreducible(0b1111))
 		// print(GF256.degree(0b1111))
@@ -17,7 +17,7 @@ struct Main2 {
         let key_size = 32
         let block_size = 32
 		let key = Array.random(size: key_size)
-		let aes = try await AesEncryptor(keySize: key_size, blockSize: block_size, irreducible: 283)
+	    var aes = try await AesEncryptor(keySize: key_size, blockSize: block_size, irreducible: 283)
 		let cipher = try await BlockEncryptor(
 			encryptor: aes,
 			key: key, mode: .ecb, padding: .zeros, iv: nil,

@@ -57,11 +57,11 @@ struct TestDes {
 		}
 	}
 
-	actor AddEncryptor: Encryptor {
-		func duplicate() async -> Self {
+	struct AddEncryptor: Encryptor {
+		func clone() -> Self {
 			return try! Self(key: self.key)
 		}
-		func setKey(key: Block) async throws {
+		mutating func setKey(key: Block) async throws {
 			self.key = key
 		}
 
@@ -79,10 +79,10 @@ struct TestDes {
 			new_data -= key
 			return new_data
 		}
-		func keySizes() async -> [Int]? {
+		func keySizes()  -> [Int]? {
 			return nil
 		}
-		func blockSize() async -> Int? {
+		func blockSize() -> Int? {
 			return nil
 		}
 
@@ -118,7 +118,7 @@ struct TestDes {
 
 	// https://emn178.github.io/online-tools/des/encrypt/
 	@Test("DES encryption as example")
-	func desTest() async throws {
+	func desTestLorem() async throws {
 		let key = Array("12345678".utf8)
 		let text = Array("Lorem ipsum dolor".utf8)
 		let des = try Feistel(expander: DesExpander(), transposer: DesTransposer())

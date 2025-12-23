@@ -118,7 +118,7 @@ final class AesExpander {
 	}
 }
 
-public actor AesEncryptor: Encryptor {
+public struct AesEncryptor: Encryptor {
 	typealias State = [[Byte]]
 	let block_size: Int
 	let key_size: Int
@@ -128,14 +128,14 @@ public actor AesEncryptor: Encryptor {
 	let nb: Int
 	let mod: Int
 
-	public func blockSize() async -> Int? {
+	public func blockSize() -> Int? {
 		return block_size
 	}
-	public func keySizes() async -> [Int]? {
+	public func keySizes() -> [Int]? {
 		return [16, 24, 32]
 	}
 
-	public func setKey(key: Block) async throws {
+	public mutating func setKey(key: Block) async throws {
 		guard key.count == key_size else {
 			throw EncryptionError.keySize(key_size, nil)
 		}
@@ -342,12 +342,21 @@ public actor AesEncryptor: Encryptor {
 					^ GF256.mul(tempCol[3], 0x0E, mod: 0x1B))
 		}
 	}
-    fileprivate func set_expanded_key(key: [Word]?) {
-        self.expandedKey = key;
-    }
-    public func duplicate() async -> Self {
-        let other = try! await Self.init(keySize: self.key_size, blockSize: self.block_size)
-        await other.set_expanded_key(key: self.expandedKey)
-        return other
-    }
+	private init(
+		keySize: Int, blockSize: Int, irreducible: Int, expandedKey: [Word]?,
+		nb: Int, rounds: Int, sbox: SBox
+	) {
+		self.key_size = keySize
+		self.block_size = blockSize
+		self.expandedKey = expandedKey
+		self.mod = irreducible
+		self.nb = nb
+		self.rounds = rounds
+		self.sbox = sbox
+	}
+	public func clone() -> Self {
+		return Self(
+			keySize: key_size, blockSize: block_size, irreducible: mod, expandedKey: expandedKey,
+			nb: nb, rounds: rounds, sbox: sbox)
+	}
 }

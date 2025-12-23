@@ -1,6 +1,6 @@
 import Foundation
 
-public actor TwofishEncryptor: Encryptor {
+public struct TwofishEncryptor: Encryptor {
 	struct Constants {
 		let G_M: Word = 0x0169
 		let G_MOD: Word = 0x0000_014d
@@ -39,7 +39,7 @@ public actor TwofishEncryptor: Encryptor {
 		self.k_len = k_len
 		self.key_set = key_set
 	}
-	public func duplicate() async -> Self {
+	public func clone() -> Self {
 		return Self(l_key: l_key, s_key: s_key, k_len: k_len, key_set: key_set)
 	}
 
@@ -77,8 +77,8 @@ public actor TwofishEncryptor: Encryptor {
 		return res
 	}
 
-	public func setKey(key: Block) async throws {
-		guard await keySizes()!.contains(key.count) else {
+	public mutating func setKey(key: Block) async throws {
+		guard keySizes()!.contains(key.count) else {
 			throw EncryptionError.keySize(key.count, nil)
 		}
 		var key_words = Array(repeating: UInt32(0), count: key.count / 4)
@@ -191,7 +191,7 @@ public actor TwofishEncryptor: Encryptor {
 
 	}
 
-	private func initialize(key_words: [Word]) {
+	private mutating func initialize(key_words: [Word]) {
 		s_key = InlineArray(repeating: 0)
 		l_key = InlineArray(repeating: 0)
 		k_len = key_words.count / 2
@@ -281,7 +281,7 @@ public actor TwofishEncryptor: Encryptor {
 		guard key_set else {
 			throw EncryptionError.keyNotSet
 		}
-		guard await data.count == blockSize() else {
+		guard data.count == blockSize() else {
 			throw EncryptionError.blockSize(16, nil)
 		}
 		let words = bytes_to_words(bytes: data)
@@ -294,7 +294,7 @@ public actor TwofishEncryptor: Encryptor {
 			throw EncryptionError.keyNotSet
 		}
 
-		guard await data.count == blockSize() else {
+		guard data.count == blockSize() else {
 			throw EncryptionError.blockSize(16, nil)
 		}
 
@@ -303,11 +303,11 @@ public actor TwofishEncryptor: Encryptor {
 		return words_to_bytes(words: encrypted)
 	}
 
-	public func blockSize() async -> Int? {
+	public func blockSize()  -> Int? {
 		return 16
 	}
 
-	public func keySizes() async -> [Int]? {
+	public func keySizes()  -> [Int]? {
 		return [16, 24, 32]
 	}
 

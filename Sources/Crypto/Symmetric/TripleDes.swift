@@ -1,4 +1,4 @@
-public actor TripleDes: Encryptor {
+public struct TripleDes: Encryptor {
 	private var des1: DesEncryptor
 	private var des2: DesEncryptor
 	private var des3: DesEncryptor
@@ -11,7 +11,7 @@ public actor TripleDes: Encryptor {
 		self.mode = m
 	}
 
-	public func duplicate() async -> Self {
+	public func clone() -> Self {
 		return Self(d1: self.des1, d2: self.des2, d3: self.des3, m: self.mode)
 	}
 
@@ -27,8 +27,8 @@ public actor TripleDes: Encryptor {
 		self.des3 = DesEncryptor()
 	}
 
-	public func setKey(key: Block) async throws {
-		guard await keySizes()!.contains(key.count) else {
+	public mutating func setKey(key: Block) async throws {
+		guard keySizes()!.contains(key.count) else {
 			throw EncryptionError.keySize(key.count, "3DES key must be 16 or 24 bytes")
 		}
 
@@ -73,11 +73,11 @@ public actor TripleDes: Encryptor {
 		}
 	}
 
-	public func blockSize() async -> Int? {
+	public func blockSize() -> Int? {
 		return 8
 	}
 
-	public func keySizes() async -> [Int]? {
+	public func keySizes() -> [Int]? {
 		return [16, 24]
 	}
 }

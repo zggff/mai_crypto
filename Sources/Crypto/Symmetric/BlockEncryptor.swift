@@ -30,18 +30,19 @@ public class BlockEncryptor {
 		encryptor: Encryptor, key: [Byte], mode: EncryptionMode, padding: PaddingMode, iv: [Byte]?,
 		args: [EncryptionModeArg]
 	) async throws {
+		var encryptor = encryptor
+		try await encryptor.setKey(key: key)
 		self.encryptor = encryptor
-		try await self.encryptor.setKey(key: key)
 		self.mode = mode
 		self.padding = padding
 		self.iv = iv
 		self.args = args
-		if let key_sizes = await encryptor.keySizes() {
+		if let key_sizes = encryptor.keySizes() {
 			if !key_sizes.contains(key.count) {
 				throw EncryptionError.keySize(key.count, "key size must be one of \(key_sizes)")
 			}
 		}
-		self.block_size = await self.encryptor.blockSize() ?? key.count
+		self.block_size = self.encryptor.blockSize() ?? key.count
 		if let iv = iv {
 			if iv.count != self.block_size {
 				throw EncryptionError.iv
@@ -222,18 +223,20 @@ public class BlockEncryptor {
 		let encryptor = self.encryptor
 		switch mode {
 			case .ecb:
-				var tasks: [Task<Block, Error>] = []
-				var arr: [Byte] = []
-				for block in padded {
-                    let actor = await encryptor.duplicate()
-					tasks.append(
-						Task {
-							let new_block = try await actor.encrypt(data: block)
-							return new_block
-						})
-				}
-				for task in tasks {
-					arr.append(contentsOf: try await task.value)
+				var arr: [Byte] = Array(repeating: 0, count: padded.count * block_size)
+				try await withThrowingTaskGroup(of: (Int, Block).self) { [encryptor, self] g in
+					for (i, block) in padded.enumerated() {
+						g.addTask {
+							let new_block = try await encryptor.encrypt(data: block)
+							return (i, new_block)
+						}
+					}
+					var count = 0
+					for try await (i, block) in g {
+						count += 1
+						arr.replaceSubrange(
+							(block_size * i)..<(block_size * (i + 1)), with: block)
+					}
 				}
 				return (arr, nil, 0)
 			case .cbc:
@@ -348,18 +351,18 @@ public class BlockEncryptor {
 		let encryptor = self.encryptor
 		switch mode {
 			case .ecb:
-				var tasks: [Task<Block, Error>] = []
-				var arr: [Byte] = []
-				for block in padded {
-                    let actor = await encryptor.duplicate()
-					tasks.append(
-						Task {
-							let new_block = try await actor.decrypt(data: block)
-							return new_block
-						})
-				}
-				for task in tasks {
-					arr.append(contentsOf: try await task.value)
+				var arr: [Byte] = Array(repeating: 0, count: padded.count * block_size)
+				try await withThrowingTaskGroup(of: (Int, Block).self) { [encryptor, self] g in
+					for (i, block) in padded.enumerated() {
+						g.addTask {
+							let new_block = try await encryptor.decrypt(data: block)
+							return (i, new_block)
+						}
+					}
+					for try await (i, block) in g {
+						arr.replaceSubrange(
+							(block.count * i)..<(block.count * (i + 1)), with: block)
+					}
 				}
 				return (arr, nil, 0)
 			case .cbc:

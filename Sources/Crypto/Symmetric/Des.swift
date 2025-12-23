@@ -1,4 +1,4 @@
-public final class DesTransposer: EncryptTransposer {
+public struct DesTransposer: EncryptTransposer {
 	public init() {}
 	public func blockSize() -> Int? { return 8 }
 	static let Ip = [
@@ -123,7 +123,7 @@ public final class DesTransposer: EncryptTransposer {
 	}
 }
 
-public final class DesExpander: KeyExpander {
+public struct DesExpander: KeyExpander {
 	public init() {}
 	public func keySizes() -> [Int]? { return [8] }
 	public static func PC1() -> [Int] {
@@ -192,22 +192,21 @@ public final class DesExpander: KeyExpander {
 	}
 }
 
-public actor DesEncryptor: Encryptor {
-	private init(feistel: Feistel?) {
-		self.feistel = feistel
-	}
-	public func duplicate() async -> Self {
-        return Self(feistel: self.feistel)
-	}
+public struct DesEncryptor: Encryptor {
 	private var feistel: Feistel?
 
 	public init() {}
+	private init(feistel: Feistel?) {}
 
-	public func setKey(key: Block) async throws {
+	public mutating func setKey(key: Block) async throws {
 		let expander = DesExpander()
 		let transposer = DesTransposer()
 		self.feistel = try Feistel(expander: expander, transposer: transposer)
 		try await feistel!.setKey(key: key)
+	}
+
+	public func clone() -> Self {
+		return Self(feistel: self.feistel)
 	}
 
 	public func encrypt(data: Block) async throws -> Block {
@@ -224,11 +223,11 @@ public actor DesEncryptor: Encryptor {
 		return try await feistel.decrypt(data: data)
 	}
 
-	public func blockSize() async -> Int? {
+	public func blockSize() -> Int? {
 		return 8
 	}
 
-	public func keySizes() async -> [Int]? {
+	public func keySizes() -> [Int]? {
 		return [8]
 	}
 }

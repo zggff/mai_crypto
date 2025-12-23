@@ -2,7 +2,6 @@ public typealias Word = UInt32
 public typealias Byte = UInt8
 public typealias Block = [Byte]
 
-
 public enum BitOrder {
 	case forward
 	case backward
@@ -31,18 +30,15 @@ extension EncryptTransposer {
 }
 
 public protocol Encryptor: Sendable {
-	func setKey(key: Block) async throws
+	mutating func setKey(key: Block) async throws
 	func encrypt(data: Block) async throws -> Block
 	func decrypt(data: Block) async throws -> Block
-	func blockSize() async -> Int?
-	func keySizes() async -> [Int]?
-    func duplicate() async -> Self
+	func blockSize() -> Int?
+	func keySizes() -> [Int]?
+	func clone() -> Self
 }
 
-
-
 public enum EncryptionModeArg: Sendable {}
-
 
 public enum EncryptionError: Error {
 	case notFitting
@@ -55,4 +51,3 @@ public enum EncryptionError: Error {
 	case iv
 	case fileOpen(String)
 }
-

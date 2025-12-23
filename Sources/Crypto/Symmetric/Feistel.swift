@@ -1,4 +1,4 @@
-public actor Feistel: Encryptor {
+public struct Feistel: Encryptor {
 	let expander: KeyExpander
 	let transposer: EncryptTransposer
 	var encrypt_keys: [Block]?
@@ -9,7 +9,7 @@ public actor Feistel: Encryptor {
 		self.transposer = transposer
 	}
 
-	public func setKey(key: Block) async throws {
+	public mutating func setKey(key: Block) async throws {
 		self.encrypt_keys = try await expander.expandKey(key: key)
 		self.decrypt_keys = encrypt_keys!.reversed()
 	}
@@ -54,9 +54,9 @@ public actor Feistel: Encryptor {
 		self.decrypt_keys = decrypt_keys
 	}
 
-	public func blockSize() async -> Int? { return self.transposer.blockSize() }
-	public func keySizes() async -> [Int]? { return self.expander.keySizes() }
-	public func duplicate() async -> Self {
+	public func blockSize() -> Int? { return self.transposer.blockSize() }
+	public func keySizes() -> [Int]? { return self.expander.keySizes() }
+	public func clone() -> Self {
 		return Self(
 			expander: self.expander, transposer: self.transposer, encrypt_keys: self.encrypt_keys,
 			decrypt_keys: self.decrypt_keys)
