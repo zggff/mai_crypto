@@ -125,7 +125,7 @@ public final class DesTransposer: EncryptTransposer {
 
 public final class DesExpander: KeyExpander {
 	public init() {}
-    public func keySizes() -> [Int]? { return [8] }
+	public func keySizes() -> [Int]? { return [8] }
 	public static func PC1() -> [Int] {
 		let res = [
 			57, 49, 41, 33, 25, 17, 9,
@@ -193,36 +193,42 @@ public final class DesExpander: KeyExpander {
 }
 
 public actor DesEncryptor: Encryptor {
-    private var feistel: Feistel?
-    
-    public init() {}
-    
-    public func setKey(key: Block) async throws {
-        let expander = DesExpander()
-        let transposer = DesTransposer()
-        self.feistel = try Feistel(expander: expander, transposer: transposer)
-        try await feistel!.setKey(key: key)
-    }
-    
-    public func encrypt(data: Block) async throws -> Block {
-        guard let feistel = feistel else {
-            throw EncryptionError.keyNotSet
-        }
-        return try await feistel.encrypt(data: data)
-    }
-    
-    public func decrypt(data: Block) async throws -> Block {
-        guard let feistel = feistel else {
-            throw EncryptionError.keyNotSet
-        }
-        return try await feistel.decrypt(data: data)
-    }
-    
-    public func blockSize() async -> Int? {
-        return 8
-    }
-    
-    public func keySizes() async -> [Int]? {
-        return [8]
-    }
+	private init(feistel: Feistel?) {
+		self.feistel = feistel
+	}
+	public func duplicate() async -> Self {
+        return Self(feistel: self.feistel)
+	}
+	private var feistel: Feistel?
+
+	public init() {}
+
+	public func setKey(key: Block) async throws {
+		let expander = DesExpander()
+		let transposer = DesTransposer()
+		self.feistel = try Feistel(expander: expander, transposer: transposer)
+		try await feistel!.setKey(key: key)
+	}
+
+	public func encrypt(data: Block) async throws -> Block {
+		guard let feistel = feistel else {
+			throw EncryptionError.keyNotSet
+		}
+		return try await feistel.encrypt(data: data)
+	}
+
+	public func decrypt(data: Block) async throws -> Block {
+		guard let feistel = feistel else {
+			throw EncryptionError.keyNotSet
+		}
+		return try await feistel.decrypt(data: data)
+	}
+
+	public func blockSize() async -> Int? {
+		return 8
+	}
+
+	public func keySizes() async -> [Int]? {
+		return [8]
+	}
 }

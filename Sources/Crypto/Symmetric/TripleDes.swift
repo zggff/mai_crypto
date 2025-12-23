@@ -4,6 +4,17 @@ public actor TripleDes: Encryptor {
 	private var des3: DesEncryptor
 	private var mode: Mode
 
+	private init(d1: DesEncryptor, d2: DesEncryptor, d3: DesEncryptor, m: Mode) {
+		self.des1 = d1
+		self.des2 = d2
+		self.des3 = d3
+		self.mode = m
+	}
+
+	public func duplicate() async -> Self {
+		return Self(d1: self.des1, d2: self.des2, d3: self.des3, m: self.mode)
+	}
+
 	public enum Mode: CaseIterable & Sendable {
 		case ede
 		case eee

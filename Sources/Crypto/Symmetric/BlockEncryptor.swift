@@ -225,9 +225,10 @@ public class BlockEncryptor {
 				var tasks: [Task<Block, Error>] = []
 				var arr: [Byte] = []
 				for block in padded {
+                    let actor = await encryptor.duplicate()
 					tasks.append(
 						Task {
-							let new_block = try await encryptor.encrypt(data: block)
+							let new_block = try await actor.encrypt(data: block)
 							return new_block
 						})
 				}
@@ -350,9 +351,10 @@ public class BlockEncryptor {
 				var tasks: [Task<Block, Error>] = []
 				var arr: [Byte] = []
 				for block in padded {
+                    let actor = await encryptor.duplicate()
 					tasks.append(
 						Task {
-							let new_block = try await encryptor.decrypt(data: block)
+							let new_block = try await actor.decrypt(data: block)
 							return new_block
 						})
 				}

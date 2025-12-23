@@ -342,4 +342,12 @@ public actor AesEncryptor: Encryptor {
 					^ GF256.mul(tempCol[3], 0x0E, mod: 0x1B))
 		}
 	}
+    fileprivate func set_expanded_key(key: [Word]?) {
+        self.expandedKey = key;
+    }
+    public func duplicate() async -> Self {
+        let other = try! await Self.init(keySize: self.key_size, blockSize: self.block_size)
+        await other.set_expanded_key(key: self.expandedKey)
+        return other
+    }
 }

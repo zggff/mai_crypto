@@ -36,6 +36,7 @@ public protocol Encryptor: Sendable {
 	func decrypt(data: Block) async throws -> Block
 	func blockSize() async -> Int?
 	func keySizes() async -> [Int]?
+    func duplicate() async -> Self
 }
 
 

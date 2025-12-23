@@ -58,6 +58,9 @@ struct TestDes {
 	}
 
 	actor AddEncryptor: Encryptor {
+		func duplicate() async -> Self {
+			return try! Self(key: self.key)
+		}
 		func setKey(key: Block) async throws {
 			self.key = key
 		}
@@ -89,7 +92,9 @@ struct TestDes {
 		"test block modes", arguments: BlockEncryptor.PaddingMode.allCases,
 		BlockEncryptor.EncryptionMode.allCases
 	)
-	func testEncryption(padding: BlockEncryptor.PaddingMode, mode: BlockEncryptor.EncryptionMode) async throws {
+	func testEncryption(padding: BlockEncryptor.PaddingMode, mode: BlockEncryptor.EncryptionMode)
+		async throws
+	{
 		let key = "12345678"
 		let iv = "abcdefgh"
 		for n in (1...32) {
@@ -163,7 +168,7 @@ struct TestDes {
 			#expect(res == data, "\(data) with \(key)")
 		}
 	}
-    @Test("Triple des encryption", arguments: [16, 24], TripleDes.Mode.allCases)
+	@Test("Triple des encryption", arguments: [16, 24], TripleDes.Mode.allCases)
 	func des3TestComprehensive(size: Int, mode: TripleDes.Mode) async throws {
 		let key = Array.random(size: size)
 		let cipher = try await BlockEncryptor(

@@ -31,6 +31,18 @@ public actor TwofishEncryptor: Encryptor {
 	var k_len: Int
 	var key_set: Bool
 
+	private init(
+		l_key: InlineArray<40, Word>, s_key: InlineArray<4, Word>, k_len: Int, key_set: Bool
+	) {
+		self.l_key = l_key
+		self.s_key = s_key
+		self.k_len = k_len
+		self.key_set = key_set
+	}
+	public func duplicate() async -> Self {
+		return Self(l_key: l_key, s_key: s_key, k_len: k_len, key_set: key_set)
+	}
+
 	public init() {
 		l_key = InlineArray(repeating: 0)
 		s_key = InlineArray(repeating: 0)
