@@ -1,4 +1,3 @@
-
 public enum AesError: Error {
 	case AesReducible
 	case Runtime(msg: String)
@@ -49,11 +48,18 @@ actor SBox: Sendable {
 
 final class AesExpander {
 	let sBox: SBox
-	static let rcon: [Byte] = [
-		0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
-		0x1B, 0x36, 0x6C, 0xD8, 0xAB, 0x4D, 0x9A, 0x2F, 0x5E, 0xBC, 0x63, 0xC6, 0x97,
-		0x35, 0x6A, 0xD4, 0xB3, 0x7D, 0xFA, 0xEF, 0xC5, 0x91,
-	]
+	static let rcon: [Byte] = {
+		var r = Array(repeating: Byte(0), count: 31)
+		r[1] = 0x01
+		for i in 2..<r.count {
+			r[i] = GF256.mul(0x02, r[i - 1], mod: 0x1b)
+		}
+		return r
+	}()
+	// static let rcon: [Byte] = [0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
+	// 	0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d, 0x9a, 0x2f, 0x5e, 0xbc, 0x63, 0xc6, 0x97,
+	// 	0x35, 0x6a, 0xd4, 0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91,
+	// ]
 	let key_size: Int
 	let block_size: Int
 	let rounds: Int
@@ -256,45 +262,34 @@ public actor AesEncryptor: Encryptor {
 	}
 
 	private func shiftRows(_ state: inout State) {
-		let temp1 = state[1][0]
-		state[1][0] = state[1][1]
-		state[1][1] = state[1][2]
-		state[1][2] = state[1][3]
-		state[1][3] = temp1
-
-		let temp2a = state[2][0]
-		let temp2b = state[2][1]
-		state[2][0] = state[2][2]
-		state[2][1] = state[2][3]
-		state[2][2] = temp2a
-		state[2][3] = temp2b
-
-		let temp3 = state[3][3]
-		state[3][3] = state[3][2]
-		state[3][2] = state[3][1]
-		state[3][1] = state[3][0]
-		state[3][0] = temp3
+		var mult = 1
+		if key_size == 32 {
+			mult = 2
+		}
+		let state_copy = state
+		for i in 0..<state.count {
+			for j in 0..<state.count {
+				let k = (j + i * mult) % state.count
+				state[i][j] = state_copy[i][k]
+			}
+		}
 	}
 
 	private func invShiftRows(_ state: inout State) {
-		let temp1 = state[1][3]
-		state[1][3] = state[1][2]
-		state[1][2] = state[1][1]
-		state[1][1] = state[1][0]
-		state[1][0] = temp1
-
-		let temp2a = state[2][0]
-		let temp2b = state[2][1]
-		state[2][0] = state[2][2]
-		state[2][1] = state[2][3]
-		state[2][2] = temp2a
-		state[2][3] = temp2b
-
-		let temp3 = state[3][0]
-		state[3][0] = state[3][1]
-		state[3][1] = state[3][2]
-		state[3][2] = state[3][3]
-		state[3][3] = temp3
+		let state_copy = state
+		var mult = 1
+		if key_size == 32 {
+			mult = 2
+		}
+		for i in 0..<state.count {
+			for j in 0..<state.count {
+				var k = j - i * mult
+				while k < 0 {
+					k = state.count + k
+				}
+				state[i][j] = state_copy[i][k]
+			}
+		}
 
 	}
 

@@ -1,36 +1,33 @@
+import BigInt
 import Crypto
 import Foundation
 
-@main
 struct Main {
 	static func main() async throws {
-        print(GF256.irreducible(0b1111))
-        print(GF256.degree(0b1111))
+		let aes = try await AesEncryptor(keySize: 16, blockSize: 16)
+		try await aes.setKey(key: Array("1234567887654321".utf8))
+		// print(GF256.irreducible(0b1111))
+		// print(GF256.degree(0b1111))
 	}
 }
 
+@main
 struct Main2 {
 	static func main() async throws {
-        var from = "test.txt"
-        var to = "enc2.test.txt"
+        let key_size = 32
+        let block_size = 32
+		let key = Array.random(size: key_size)
+		let aes = try await AesEncryptor(keySize: key_size, blockSize: block_size, irreducible: 283)
+		let cipher = try await BlockEncryptor(
+			encryptor: aes,
+			key: key, mode: .ecb, padding: .zeros, iv: nil,
+			args: [])
+		for n in (1...10) {
+			var data = Array.random(size: n * 60)
+			let encr = try await cipher.encrypt(data: data)
+			let res = try await cipher.decrypt(data: encr)
+			break
+		}
 
-        from = "enc2.test.txt"
-        to = "dec2.test.txt"
-		guard let input = InputStream(fileAtPath: from) else {
-			throw EncryptionError.fileOpen("failed to open path: '\(from)'")
-		}
-		FileManager.default.createFile(atPath: to, contents: nil)
-		guard let output = OutputStream(toFileAtPath: to, append: false) else {
-			throw EncryptionError.fileOpen("failed to open path: '\(to)'")
-		}
-		defer {
-			input.close()
-			output.close()
-		}
-        let key = Array("hello this is a key".utf8)
-        var rc = RC4()
-        rc.setKey(key: key)
-        try rc.encrypt(in: input, out: output)
 	}
 }
-

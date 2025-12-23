@@ -31,7 +31,7 @@ public class Rsa {
 		let primeBitLength: Int
 		let math = RsaMath.self
 
-		init(testType: TestType, minProbability: Double, primeBitLength: Int) {
+		public init(testType: TestType, minProbability: Double, primeBitLength: Int) {
 			precondition(minProbability >= 0.5 && minProbability < 1.0)
 			self.testType = testType
 			self.minProbability = minProbability
@@ -116,40 +116,40 @@ public class Rsa {
 
 	public var keyPair: KeyPair?
 
-	init() {}
+	public init() {}
 
-	func setKeyPair(_ kp: KeyPair) {
+	public func setKeyPair(_ kp: KeyPair) {
 		self.keyPair = kp
 	}
 
-	func encrypt(message: BigInt) throws -> BigInt {
+	public func encrypt(message: BigInt) throws -> BigInt {
 		guard let kp = keyPair else {
 			throw EncryptionError.keyNotSet
 		}
 		return RsaMath.modPow(message, kp.pub.e, kp.pub.n)
 	}
 
-	static func encrypt(message: BigInt, key: PublicKey) -> BigInt {
+	public static func encrypt(message: BigInt, key: PublicKey) -> BigInt {
 		return RsaMath.modPow(message, key.e, key.n)
 	}
 
-	func decrypt(cipher: BigInt) throws -> BigInt {
+	public func decrypt(cipher: BigInt) throws -> BigInt {
 		guard let kp = keyPair else {
 			throw EncryptionError.keyNotSet
 		}
 		return RsaMath.modPow(cipher, kp.pri.d, kp.pri.n)
 	}
 
-    static func decrypt(cipher: BigInt, key: PrivateKey) -> BigInt {
+    public static func decrypt(cipher: BigInt, key: PrivateKey) -> BigInt {
 		return RsaMath.modPow(cipher, key.d, key.n)
 	}
 
-	static func messageToBigInt(_ message: String) -> BigInt {
+	public static func messageToBigInt(_ message: String) -> BigInt {
 		let data = message.data(using: .utf8)!
 		return BigInt(BigUInt(data))
 	}
 
-	static func bigIntToMessage(_ m: BigInt) -> String? {
+	public static func bigIntToMessage(_ m: BigInt) -> String? {
 		guard m >= 0 else { return nil }
 		let bigUInt = BigUInt(m.magnitude)
 		let data = bigUInt.serialize()
